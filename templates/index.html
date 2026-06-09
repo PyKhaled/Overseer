@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Docker Project Dashboard</title>
+  <style>
+    body {
+      font-family: Arial;
+      margin: 40px;
+      background: #f5f5f5
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left
+    }
+
+    h1 {
+      margin-bottom: 20px
+    }
+
+    button {
+      padding: 6px 10px;
+      margin-right: 5px
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Docker Compose Project Dashboard</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Service</th>
+        <th>Status</th>
+        <th>Container</th>
+        <th>Image</th>
+      </tr>
+    </thead>
+    <tbody id="services"></tbody>
+  </table>
+
+  <script>
+    async function load() {
+      const res = await fetch('/api/services');
+      const data = await res.json();
+
+      document.getElementById('services').innerHTML =
+        data.map(x => `
+      <tr>
+        <td>${x.project}</td>
+        <td>${x.service}</td>
+        <td>${x.status}</td>
+        <td>${x.container_id}</td>
+        <td>${x.image}</td>
+      </tr>
+    `).join('');
+    }
+    load();
+    setInterval(load, 5000);
+  </script>
+</body>
+
+</html>
