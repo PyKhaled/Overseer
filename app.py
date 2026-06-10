@@ -66,7 +66,6 @@ def inspect_container(container):
         "status": container.status,
         "image": container.image.tags[0],
         "ports": get_ports(container),
-        "links": format_ports_as_links(container.image.tags),
         "started_at": get_started_at(container),
         "uptime": get_uptime(container)
     }
