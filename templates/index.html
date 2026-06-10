@@ -2,210 +2,239 @@
 <html>
 
 <head>
-  <title>Docker Project Dashboard</title>
+  <title>Overseer Dashboard</title>
 
   <style>
     body {
+      margin: 0;
       font-family: Arial;
-      margin: 40px;
-      background: #f5f5f5;
+      background: #0f172a;
+      color: #e5e7eb;
     }
 
-    h1 {
-      margin-bottom: 20px;
+    header {
+      padding: 18px 20px;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
+    .container {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
     }
 
-    th,
-    td {
-      padding: 12px;
-      border: 1px solid #ddd;
-      text-align: left;
-      vertical-align: middle;
+    .card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 16px;
     }
 
-    /* STATUS */
     .status {
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      margin-left: 8px;
       color: white;
-      font-size: 12px;
-      font-weight: bold;
-      display: inline-block;
       text-transform: capitalize;
     }
 
-    .green { background: #22c55e; }
-    .red { background: #ef4444; }
-    .yellow { background: #f59e0b; }
-    .orange { background: #f97316; }
-    .gray { background: #9ca3af; }
+    .green { background: #16a34a; }
+    .red { background: #dc2626; }
+    .yellow { background: #ca8a04; }
+    .gray { background: #374151; }
 
-    /* ACTIONS */
-    .actions button {
-      padding: 6px 10px;
+    .meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .ports a {
+      display: inline-block;
+      margin: 4px 6px 0 0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #1f2937;
+      color: #60a5fa;
+      text-decoration: none;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .ports a:hover {
+      background: #374151;
+    }
+
+    .protocol {
+      font-size: 10px;
+      margin-left: 4px;
+      color: #9ca3af;
+    }
+
+    button {
+      margin-top: 10px;
       margin-right: 5px;
+      padding: 6px 10px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 12px;
-      transition: 0.2s;
+      font-size: 11px;
       color: white;
     }
 
-    .actions button:hover {
-      opacity: 0.85;
-    }
-
-    .actions button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .restart { background: #3b82f6; }
-    .stop { background: #ef4444; }
-    .start { background: #22c55e; }
-
-    .footer {
-      margin-top: 25px;
-      text-align: center;
-      font-size: 12px;
-      color: #666;
-    }
+    .start { background: #16a34a; }
+    .stop { background: #dc2626; }
+    .restart { background: #2563eb; }
   </style>
 </head>
 
 <body>
 
-  <h1>Docker Compose Project Dashboard</h1>
+<header>
+  <div>🧠 Overseer Dashboard</div>
+</header>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Status</th>
-        <th>Service</th>
-        <th>Container</th>
-        <th>Image</th>
-        <th>Ports</th>
-        <th>Last Started</th>
-        <th>Uptime</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
+<div class="container" id="grid"></div>
 
-    <tbody id="services"></tbody>
-  </table>
 
-  <div class="footer">
-    © 2026 Overseer Dashboard — Docker Control Panel
-  </div>
+<footer style="text-align:center; padding:14px; font-size:11px; color:#6b7280; border-top:1px solid #1f2937; margin-top:20px;">
+  © 2026 PyKhaled. All rights reserved.
+  <br/>
+  Built for internal infrastructure management •
 
-  <script>
-    function getStatusClass(status) {
-      status = (status || "").toLowerCase();
+  <a href="mailto:ahmedaka@icloud.com" style="color:#60a5fa; text-decoration:none;">Contact</a>
+</footer>
 
-      if (status === "running") return "green";
-      if (status === "exited" || status === "dead") return "red";
-      if (status === "restarting") return "yellow";
-      if (status === "unhealthy") return "orange";
 
-      return "gray";
+
+
+
+<script>
+  function statusClass(s) {
+    s = (s || "").toLowerCase();
+    if (s === "running") return "green";
+    if (s === "exited") return "red";
+    if (s === "restarting") return "yellow";
+    return "gray";
+  }
+
+  async function action(type, id) {
+    await fetch(`/api/service/${id}/${type}`, { method: "POST" });
+    await load();
+  }
+
+  // 🔥 FIXED: safe URL builder (prevents broken href)
+  function buildUrl(protocol, host, port) {
+    if (!host || !port) return null;
+    return `${protocol}://${host}:${port}`;
+  }
+
+  // 🔥 FIXED: clickable ports using window.open fallback
+  function renderPorts(ports) {
+    if (!ports) return `<span style="color:#6b7280">No ports exposed</span>`;
+
+    let html = "";
+    const seen = new Set();
+
+    // CASE 1: normalized backend format
+    if (Array.isArray(ports)) {
+      ports.forEach(p => {
+        if (!p || !p.url) return;
+        if (seen.has(p.url)) return;
+        seen.add(p.url);
+
+        html += `
+          <a onclick="openPort('${p.url}')">
+            ${p.container_port || p.port || "port"}
+            <span class="protocol">(${(p.protocol || "http").toUpperCase()})</span>
+          </a>
+        `;
+      });
+
+      return html || `<span style="color:#6b7280">No ports exposed</span>`;
     }
 
-    async function action(type, id) {
-      const buttons = {
-        restart: document.getElementById(`btn-restart-${id}`),
-        stop: document.getElementById(`btn-stop-${id}`),
-        start: document.getElementById(`btn-start-${id}`)
-      };
+    // CASE 2: raw Docker format
+    if (typeof ports === "object") {
+      Object.entries(ports).forEach(([containerPort, mappings]) => {
+        if (!Array.isArray(mappings)) return;
 
-      const btn = buttons[type];
+        mappings.forEach(m => {
+          const host = (m.HostIp === "0.0.0.0" || m.HostIp === "::")
+            ? "localhost"
+            : m.HostIp;
 
-      try {
-        if (type === "stop") {
-          const ok = confirm("Are you sure you want to stop this service?");
-          if (!ok) return;
-        }
+          const port = m.HostPort;
 
-        Object.values(buttons).forEach(b => {
-          if (b) b.disabled = true;
+          if (!host || !port) return;
+
+          const protocol = containerPort.includes("443") ? "https" : "http";
+          const url = buildUrl(protocol, host, port);
+
+          if (!url || seen.has(url)) return;
+          seen.add(url);
+
+          html += `
+            <a onclick="openPort('${url}')">
+              ${containerPort}
+              <span class="protocol">(${protocol.toUpperCase()})</span>
+            </a>
+          `;
         });
+      });
 
-        if (btn) btn.innerText = "⏳ Working...";
-
-        // 🔥 CHANGED HERE: container → service
-        const res = await fetch(`/api/service/${id}/${type}`, {
-          method: "POST"
-        });
-
-        if (!res.ok) {
-          alert("Action failed");
-        }
-
-        await load();
-
-      } catch (err) {
-        console.error(err);
-        alert("Error performing action");
-
-      } finally {
-        await load();
-
-        Object.values(buttons).forEach(b => {
-          if (b) {
-            b.disabled = false;
-            if (b.innerText.includes("Working")) {
-              b.innerText = b.innerText.replace("⏳ Working...", "");
-            }
-          }
-        });
-      }
+      return html || `<span style="color:#6b7280">No ports exposed</span>`;
     }
 
-    async function load() {
-      const res = await fetch('/api/services');
-      const data = await res.json();
+    return `<span style="color:#6b7280">No ports exposed</span>`;
+  }
 
-      document.getElementById('services').innerHTML =
-        data.map(x => `
-          <tr>
-            <td>
-              <span class="status ${getStatusClass(x.status)}">
-                ${x.status}
-              </span>
-            </td>
+  // 🔥 FIXED: robust navigation (avoids broken href issues)
+  function openPort(url) {
+    if (!url) return;
+    window.open(url, "_blank");
+  }
 
-            <td>${x.name}</td>
-            <td>${x.id}</td>
-            <td>${x.image[0] || ""}</td>
-            <td>${x.ports}</td>
-            <td>${x.started_at}</td>
-            <td>${x.uptime}</td>
+  async function load() {
+    const res = await fetch("/api/services");
+    const data = await res.json();
 
-            <td>
-              <div class="actions">
-                ${x.status !== "running"
-                  ? `<button class="start" id="btn-start-${x.id}" onclick="action('start','${x.id}')">▶️ Start</button>`
-                  : `
-                    <button class="restart" id="btn-restart-${x.id}" onclick="action('restart','${x.id}')">🔁 Restart</button>
-                    <button class="stop" id="btn-stop-${x.id}" onclick="action('stop','${x.id}')">⛔ Stop</button>
-                  `
-                }
-              </div>
-            </td>
-          </tr>
-        `).join('');
-    }
+    document.getElementById("grid").innerHTML = data.map(s => `
+      <div class="card">
+        <div>
+          <b>${s.name}</b>
+          <span class="status ${statusClass(s.status)}">${s.status}</span>
+        </div>
 
-    load();
-    setInterval(load, 5000);
-  </script>
+        <div class="meta">
+          <div>Container: ${s.id}</div>
+          <div>Image: ${s.image?.[0] || ""}</div>
+
+          <div class="ports">
+            <b>Ports:</b><br/>
+            ${renderPorts(s.ports)}
+          </div>
+
+          <div>Started: ${s.started_at}</div>
+          <div>Uptime: ${s.uptime}</div>
+        </div>
+
+        <button class="restart" onclick="action('restart','${s.id}')">Restart</button>
+        <button class="stop" onclick="action('stop','${s.id}')">Stop</button>
+        <button class="start" onclick="action('start','${s.id}')">Start</button>
+      </div>
+    `).join("");
+  }
+
+  load();
+  setInterval(load, 5000);
+</script>
 
 </body>
-
 </html>
