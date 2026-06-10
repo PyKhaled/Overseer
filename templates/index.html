@@ -39,11 +39,13 @@
   <table>
     <thead>
       <tr>
-        <th>Project</th>
-        <th>Service</th>
         <th>Status</th>
+        <th>Service</th>
         <th>Container</th>
         <th>Image</th>
+        <th>Ports</th>
+        <th>Last Started</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="services"></tbody>
@@ -53,15 +55,21 @@
     async function load() {
       const res = await fetch('/api/services');
       const data = await res.json();
-
       document.getElementById('services').innerHTML =
         data.map(x => `
       <tr>
-        <td>${x.project}</td>
-        <td>${x.service}</td>
         <td>${x.status}</td>
-        <td>${x.container_id}</td>
-        <td>${x.image}</td>
+        <td>${x.name}</td>
+        <td>${x.id}</td>
+        <td>${x.image[0]}</td>
+        <td>${x.ports}</td>
+        <td>${x.started_at}</td>
+        <td>${x.uptime}</td>
+        <td>
+          <a href="#">Restart</a>
+          <a href="#">Stop</a>  
+          <a href="#">Start</a>
+        </td>
       </tr>
     `).join('');
     }

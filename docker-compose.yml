@@ -1,0 +1,23 @@
+services:
+  overseer-service:
+    container_name: overseer
+    build: .
+    # image: pykhaled/overseer:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /Users/$(whoami)/.docker/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock
+    stdin_open: true
+    tty: true
+  
+  grafana:
+    image: grafana/grafana
+    ports:
+     - "3000:3000"
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
