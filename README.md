@@ -1,5 +1,7 @@
 # Overseer
 
+![Overseer logo](assets/images/logo.png)
+
 Overseer is a lightweight project observability and control service for Docker Compose applications.
 
 Drop Overseer into your existing Docker Compose stack and instantly gain visibility into the services that make up your project.
