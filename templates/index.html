@@ -3,39 +3,87 @@
 
 <head>
   <title>Docker Project Dashboard</title>
+
   <style>
     body {
       font-family: Arial;
       margin: 40px;
-      background: #f5f5f5
+      background: #f5f5f5;
+    }
+
+    h1 {
+      margin-bottom: 20px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background: white
+      background: white;
     }
 
     th,
     td {
       padding: 12px;
       border: 1px solid #ddd;
-      text-align: left
+      text-align: left;
+      vertical-align: middle;
     }
 
-    h1 {
-      margin-bottom: 20px
+    /* STATUS */
+    .status {
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      display: inline-block;
+      text-transform: capitalize;
     }
 
-    button {
+    .green { background: #22c55e; }
+    .red { background: #ef4444; }
+    .yellow { background: #f59e0b; }
+    .orange { background: #f97316; }
+    .gray { background: #9ca3af; }
+
+    /* ACTIONS */
+    .actions button {
       padding: 6px 10px;
-      margin-right: 5px
+      margin-right: 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.2s;
+      color: white;
+    }
+
+    .actions button:hover {
+      opacity: 0.85;
+    }
+
+    .actions button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .restart { background: #3b82f6; }
+    .stop { background: #ef4444; }
+    .start { background: #22c55e; }
+
+    .footer {
+      margin-top: 25px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
     }
   </style>
 </head>
 
 <body>
+
   <h1>Docker Compose Project Dashboard</h1>
+
   <table>
     <thead>
       <tr>
@@ -45,37 +93,119 @@
         <th>Image</th>
         <th>Ports</th>
         <th>Last Started</th>
+        <th>Uptime</th>
         <th>Actions</th>
       </tr>
     </thead>
+
     <tbody id="services"></tbody>
   </table>
 
+  <div class="footer">
+    © 2026 Overseer Dashboard — Docker Control Panel
+  </div>
+
   <script>
+    function getStatusClass(status) {
+      status = (status || "").toLowerCase();
+
+      if (status === "running") return "green";
+      if (status === "exited" || status === "dead") return "red";
+      if (status === "restarting") return "yellow";
+      if (status === "unhealthy") return "orange";
+
+      return "gray";
+    }
+
+    async function action(type, id) {
+      const buttons = {
+        restart: document.getElementById(`btn-restart-${id}`),
+        stop: document.getElementById(`btn-stop-${id}`),
+        start: document.getElementById(`btn-start-${id}`)
+      };
+
+      const btn = buttons[type];
+
+      try {
+        if (type === "stop") {
+          const ok = confirm("Are you sure you want to stop this service?");
+          if (!ok) return;
+        }
+
+        Object.values(buttons).forEach(b => {
+          if (b) b.disabled = true;
+        });
+
+        if (btn) btn.innerText = "⏳ Working...";
+
+        // 🔥 CHANGED HERE: container → service
+        const res = await fetch(`/api/service/${id}/${type}`, {
+          method: "POST"
+        });
+
+        if (!res.ok) {
+          alert("Action failed");
+        }
+
+        await load();
+
+      } catch (err) {
+        console.error(err);
+        alert("Error performing action");
+
+      } finally {
+        await load();
+
+        Object.values(buttons).forEach(b => {
+          if (b) {
+            b.disabled = false;
+            if (b.innerText.includes("Working")) {
+              b.innerText = b.innerText.replace("⏳ Working...", "");
+            }
+          }
+        });
+      }
+    }
+
     async function load() {
       const res = await fetch('/api/services');
       const data = await res.json();
+
       document.getElementById('services').innerHTML =
         data.map(x => `
-      <tr>
-        <td>${x.status}</td>
-        <td>${x.name}</td>
-        <td>${x.id}</td>
-        <td>${x.image[0]}</td>
-        <td>${x.ports}</td>
-        <td>${x.started_at}</td>
-        <td>${x.uptime}</td>
-        <td>
-          <a href="#">Restart</a>
-          <a href="#">Stop</a>  
-          <a href="#">Start</a>
-        </td>
-      </tr>
-    `).join('');
+          <tr>
+            <td>
+              <span class="status ${getStatusClass(x.status)}">
+                ${x.status}
+              </span>
+            </td>
+
+            <td>${x.name}</td>
+            <td>${x.id}</td>
+            <td>${x.image[0] || ""}</td>
+            <td>${x.ports}</td>
+            <td>${x.started_at}</td>
+            <td>${x.uptime}</td>
+
+            <td>
+              <div class="actions">
+                ${x.status !== "running"
+                  ? `<button class="start" id="btn-start-${x.id}" onclick="action('start','${x.id}')">▶️ Start</button>`
+                  : `
+                    <button class="restart" id="btn-restart-${x.id}" onclick="action('restart','${x.id}')">🔁 Restart</button>
+                    <button class="stop" id="btn-stop-${x.id}" onclick="action('stop','${x.id}')">⛔ Stop</button>
+                  `
+                }
+              </div>
+            </td>
+          </tr>
+        `).join('');
     }
+
     load();
     setInterval(load, 5000);
   </script>
+
 </body>
 
 </html>
