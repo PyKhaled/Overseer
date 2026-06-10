@@ -3,19 +3,15 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
+WORKDIR /opt/overseer
 
-COPY requirements.txt /app/requirements.txt
+COPY requirements.txt /opt/overseer/requirements.txt
 
-RUN pip install --upgrade pip && \
-    if [ -f /app/requirements.txt ]; then \
-        pip install --no-cache-dir -r /app/requirements.txt; \
-    else \
-        pip install --no-cache-dir flask docker gunicorn; \
-    fi
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r /opt/overseer/requirements.txt
 
-COPY . .
+COPY . /opt/overseer/
 
-EXPOSE 5000
+EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "app:app"]
