@@ -1,5 +1,7 @@
 # Overseer
 
+[![Continuous Integration](https://github.com/pykhaled/overseer/actions/workflows/ci.yml/badge.svg)](https://github.com/pykhaled/overseer/actions/workflows/ci.yml)
+
 ![Overseer logo](assets/images/logo.png)
 
 Overseer is a lightweight project observability and control service for Docker Compose applications.

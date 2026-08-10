@@ -41,3 +41,5 @@ Before opening a pull request, run the tests and verify the image builds:
 ```bash
 docker build -t overseer .
 ```
+
+GitHub Actions repeats these checks on pushes to `main` and `release`, on pull requests, and when manually dispatched. The test job covers Python 3.11, 3.12, and 3.13; a separate job builds the production image.
