@@ -48,7 +48,7 @@ services:
     image: pykhaled/overseer:latest
     restart: unless-stopped
     ports:
-      - "8000:5000"
+      - "8000:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
@@ -103,6 +103,47 @@ Instead of showing every container on the machine, Overseer helps you understand
 - Which services are healthy
 - Which services are consuming resources
 - How services relate to one another
+
+---
+
+## Development
+
+The production image uses Python 3.11. For local development, create a virtual environment, install the dependencies, and ensure a Docker daemon is available:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Run the Flask development server at `http://localhost:8000`:
+
+```bash
+python -m overseer
+```
+
+Run the automated test suite. Tests mock the Docker client and do not modify real containers:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Run the production server locally with Gunicorn:
+
+```bash
+gunicorn --bind 0.0.0.0:8000 --workers 2 overseer:app
+```
+
+Build and run the container image:
+
+```bash
+docker build -t overseer .
+docker run --rm -p 8000:8000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  overseer
+```
+
+See the [`docs/`](docs/README.md) directory for architecture, API, development, and deployment details.
 
 ---
 
