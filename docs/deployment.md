@@ -15,7 +15,7 @@ The image runs Gunicorn on port `8000` with two workers. Published images are bu
 
 ## Compose Project Detection
 
-When Overseer runs as part of a Compose application, it reads the `com.docker.compose.project` label from its own container and lists only containers with the same label. Set `OVERSEER_COMPOSE_PROJECT` to override automatic detection:
+When Overseer runs as part of a Compose application, it reads the `com.docker.compose.project` label from its own container and lists other containers with the same label. The Overseer container itself is excluded. Set `OVERSEER_COMPOSE_PROJECT` to override automatic detection:
 
 ```yaml
 services:

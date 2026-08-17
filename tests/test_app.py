@@ -114,12 +114,51 @@ class HelperTests(unittest.TestCase):
     def test_list_project_containers_falls_back_to_all_containers(self):
         client = MagicMock()
 
-        with patch.object(app_module, "get_compose_project", return_value=None):
-            app_module.list_project_containers(client)
+        with patch.object(
+            app_module,
+            "get_overseer_container",
+            return_value=None,
+        ):
+            with patch.object(
+                app_module,
+                "get_compose_project",
+                return_value=None,
+            ):
+                app_module.list_project_containers(client)
 
         client.containers.list.assert_called_once_with(
             all=True,
             ignore_removed=True,
+        )
+
+    def test_list_project_containers_excludes_overseer(self):
+        client = MagicMock()
+        overseer_container = MagicMock()
+        overseer_container.id = "overseer-id"
+        overseer_container.labels = {
+            app_module.COMPOSE_PROJECT_LABEL: "example-project",
+        }
+        service_container = MagicMock()
+        service_container.id = "service-id"
+        client.containers.list.return_value = [
+            overseer_container,
+            service_container,
+        ]
+
+        with patch.object(
+            app_module,
+            "get_overseer_container",
+            return_value=overseer_container,
+        ):
+            containers = app_module.list_project_containers(client)
+
+        self.assertEqual(containers, [service_container])
+        client.containers.list.assert_called_once_with(
+            all=True,
+            ignore_removed=True,
+            filters={
+                "label": "com.docker.compose.project=example-project",
+            },
         )
 
 

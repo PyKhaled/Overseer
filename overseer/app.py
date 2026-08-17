@@ -63,22 +63,30 @@ def get_uptime(container):
     return str(end - started)
 
 
-def get_compose_project(client):
+def get_overseer_container(client):
+    container_identifier = os.getenv("HOSTNAME") or socket.gethostname()
+    try:
+        return client.containers.get(container_identifier)
+    except docker.errors.NotFound:
+        return None
+
+
+def get_compose_project(client, overseer_container=None):
     configured_project = os.getenv("OVERSEER_COMPOSE_PROJECT")
     if configured_project:
         return configured_project
 
-    container_identifier = os.getenv("HOSTNAME") or socket.gethostname()
-    try:
-        overseer_container = client.containers.get(container_identifier)
-    except docker.errors.NotFound:
+    if overseer_container is None:
+        overseer_container = get_overseer_container(client)
+    if overseer_container is None:
         return None
 
     return (overseer_container.labels or {}).get(COMPOSE_PROJECT_LABEL)
 
 
 def list_project_containers(client):
-    project = get_compose_project(client)
+    overseer_container = get_overseer_container(client)
+    project = get_compose_project(client, overseer_container)
     filters = (
         {"label": f"{COMPOSE_PROJECT_LABEL}={project}"}
         if project
@@ -87,7 +95,14 @@ def list_project_containers(client):
     list_options = {"all": True, "ignore_removed": True}
     if filters:
         list_options["filters"] = filters
-    return client.containers.list(**list_options)
+    containers = client.containers.list(**list_options)
+    if overseer_container is None:
+        return containers
+    return [
+        container
+        for container in containers
+        if container.id != overseer_container.id
+    ]
 
 
 def get_project_container(client, container_id):

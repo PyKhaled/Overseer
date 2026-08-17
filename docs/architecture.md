@@ -15,7 +15,7 @@ Gunicorn imports `overseer:app` in the production container. Flask renders the d
 
 1. The browser requests `/` and receives the dashboard.
 2. The dashboard requests `GET /api/services`.
-3. Overseer detects its Compose project, queries matching containers, and serializes container identity, state, image, ports, start time, and uptime.
+3. Overseer detects its Compose project, queries matching containers, removes itself from the result, and serializes container identity, state, image, ports, start time, and uptime.
 4. A lifecycle button sends a CSRF-protected `POST` request; Overseer verifies that the target belongs to the detected Compose project before invoking the Docker SDK operation.
 
 ## Current Boundaries

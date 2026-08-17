@@ -12,7 +12,7 @@ Returns the HTML dashboard.
 
 ### `GET /api/services`
 
-Returns containers in Overseer's Docker Compose project. Overseer detects the project from its own container label or the `OVERSEER_COMPOSE_PROJECT` environment variable. When neither is available, such as during local development outside Compose, it falls back to every container visible to the configured Docker daemon.
+Returns containers in Overseer's Docker Compose project, excluding the Overseer container itself. Overseer detects the project from its own container label or the `OVERSEER_COMPOSE_PROJECT` environment variable. When neither is available, such as during local development outside Compose, it falls back to every other container visible to the configured Docker daemon.
 
 ```json
 [
