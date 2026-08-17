@@ -15,8 +15,6 @@ The app needs access to a Docker daemon. `docker.from_env()` honors standard Doc
 ## Run Locally
 
 ```bash
-export OVERSEER_USERNAME=admin
-export OVERSEER_PASSWORD='replace-with-a-strong-password'
 python -m overseer
 ```
 

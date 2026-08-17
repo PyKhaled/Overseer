@@ -1,13 +1,6 @@
 # HTTP API
 
-All endpoints require HTTP Basic authentication. Configure credentials with `OVERSEER_USERNAME` and `OVERSEER_PASSWORD`. Requests fail closed with HTTP `503` when either value is missing. Use HTTPS whenever requests leave the local machine because Basic credentials are encoded, not encrypted.
-
-For example:
-
-```bash
-curl --user "$OVERSEER_USERNAME:$OVERSEER_PASSWORD" \
-  http://localhost:8000/api/services
-```
+The API has no built-in authentication. Run it only inside a trusted Compose project on a trusted network.
 
 ## Dashboard
 
@@ -49,15 +42,14 @@ The following endpoints accept `POST` requests:
 - `/api/service/<container_id>/stop`
 - `/api/service/<container_id>/restart`
 
-In addition to Basic authentication, action requests must include the following CSRF-protection header:
+Action requests must include the following CSRF-protection header:
 
 ```text
 X-Overseer-CSRF: 1
 ```
 
 ```bash
-curl --user "$OVERSEER_USERNAME:$OVERSEER_PASSWORD" \
-  --header "X-Overseer-CSRF: 1" \
+curl --header "X-Overseer-CSRF: 1" \
   --request POST \
   http://localhost:8000/api/service/container-id/restart
 ```

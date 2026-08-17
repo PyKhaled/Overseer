@@ -16,8 +16,8 @@ Gunicorn imports `overseer:app` in the production container. Flask renders the d
 1. The browser requests `/` and receives the dashboard.
 2. The dashboard requests `GET /api/services`.
 3. Overseer detects its Compose project, queries matching containers, and serializes container identity, state, image, ports, start time, and uptime.
-4. A lifecycle button sends an authenticated, CSRF-protected `POST` request; Overseer verifies that the target belongs to the detected Compose project before invoking the Docker SDK operation.
+4. A lifecycle button sends a CSRF-protected `POST` request; Overseer verifies that the target belongs to the detected Compose project before invoking the Docker SDK operation.
 
 ## Current Boundaries
 
-The current implementation filters by the `com.docker.compose.project` label when it can detect a project from its own container or from `OVERSEER_COMPOSE_PROJECT`. It falls back to all visible containers for local, non-Compose development. HTTP Basic authentication protects all endpoints, and a custom request header protects lifecycle actions from cross-site form submissions. The application does not yet provide multiple users, roles, or event streaming. Keep Docker-specific behavior in helper functions so routes remain straightforward to test.
+The current implementation filters by the `com.docker.compose.project` label when it can detect a project from its own container or from `OVERSEER_COMPOSE_PROJECT`. It falls back to all visible containers for local, non-Compose development. A custom request header protects lifecycle actions from cross-site form submissions, but the application does not authenticate users or stream events. Keep Docker-specific behavior in helper functions so routes remain straightforward to test.

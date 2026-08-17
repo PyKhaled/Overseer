@@ -1,4 +1,3 @@
-import hmac
 import os
 import socket
 from datetime import datetime, timezone
@@ -118,51 +117,14 @@ def inspect_container(container):
 
 def create_app(config=None):
     application = Flask(__name__, template_folder="templates")
-    application.config.from_mapping(
-        OVERSEER_USERNAME=os.getenv("OVERSEER_USERNAME"),
-        OVERSEER_PASSWORD=os.getenv("OVERSEER_PASSWORD"),
-    )
     if config:
         application.config.update(config)
 
     @application.before_request
-    def protect_application():
-        expected_username = application.config.get("OVERSEER_USERNAME")
-        expected_password = application.config.get("OVERSEER_PASSWORD")
-        if not expected_username or not expected_password:
-            return jsonify(
-                {
-                    "error": (
-                        "Overseer authentication is not configured; set "
-                        "OVERSEER_USERNAME and OVERSEER_PASSWORD"
-                    )
-                }
-            ), 503
-
-        authorization = request.authorization
-        supplied_username = authorization.username if authorization else ""
-        supplied_password = authorization.password if authorization else ""
-        authenticated = hmac.compare_digest(
-            (supplied_username or "").encode("utf-8"),
-            expected_username.encode("utf-8"),
-        ) and hmac.compare_digest(
-            (supplied_password or "").encode("utf-8"),
-            expected_password.encode("utf-8"),
-        )
-        if not authenticated:
-            response = jsonify({"error": "Authentication required"})
-            response.status_code = 401
-            response.headers["WWW-Authenticate"] = (
-                'Basic realm="Overseer", charset="UTF-8"'
-            )
-            return response
-
+    def protect_state_changing_requests():
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             supplied_csrf_header = request.headers.get(CSRF_HEADER, "")
-            if not hmac.compare_digest(
-                supplied_csrf_header,
-                CSRF_HEADER_VALUE,
-            ):
+            if supplied_csrf_header != CSRF_HEADER_VALUE:
                 return jsonify({"error": "CSRF validation failed"}), 403
 
     @application.after_request

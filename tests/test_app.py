@@ -1,4 +1,3 @@
-import base64
 import importlib
 import runpy
 import unittest
@@ -7,13 +6,6 @@ from unittest.mock import MagicMock, patch
 
 
 app_module = importlib.import_module("overseer.app")
-
-
-def basic_auth_headers(username="admin", password="secret"):
-    credentials = base64.b64encode(
-        f"{username}:{password}".encode("utf-8")
-    ).decode("ascii")
-    return {"Authorization": f"Basic {credentials}"}
 
 
 def make_container():
@@ -133,57 +125,22 @@ class HelperTests(unittest.TestCase):
 
 class RouteTests(unittest.TestCase):
     def setUp(self):
-        application = app_module.create_app(
-            {
-                "TESTING": True,
-                "OVERSEER_USERNAME": "admin",
-                "OVERSEER_PASSWORD": "secret",
-            }
-        )
+        application = app_module.create_app({"TESTING": True})
         self.client = application.test_client()
-        self.auth_headers = basic_auth_headers()
         self.action_headers = {
-            **self.auth_headers,
             app_module.CSRF_HEADER: app_module.CSRF_HEADER_VALUE,
         }
 
-    def test_unconfigured_authentication_fails_closed(self):
-        application = app_module.create_app(
-            {
-                "TESTING": True,
-                "OVERSEER_USERNAME": None,
-                "OVERSEER_PASSWORD": None,
-            }
-        )
-
-        response = application.test_client().get("/")
-
-        self.assertEqual(response.status_code, 503)
-        self.assertIn("not configured", response.get_json()["error"])
-
-    def test_invalid_credentials_are_rejected(self):
-        response = self.client.get(
-            "/api/services",
-            headers=basic_auth_headers(password="wrong"),
-        )
-
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.get_json(), {"error": "Authentication required"})
-        self.assertIn("Basic", response.headers["WWW-Authenticate"])
-
     @patch.object(app_module, "get_client")
     def test_lifecycle_action_requires_csrf_header(self, get_client):
-        response = self.client.post(
-            "/api/service/container-1/start",
-            headers=self.auth_headers,
-        )
+        response = self.client.post("/api/service/container-1/start")
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.get_json(), {"error": "CSRF validation failed"})
         get_client.assert_not_called()
 
     def test_index_renders_dashboard(self):
-        response = self.client.get("/", headers=self.auth_headers)
+        response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Overseer", response.data)
@@ -200,10 +157,7 @@ class RouteTests(unittest.TestCase):
             "get_compose_project",
             return_value="example-project",
         ):
-            response = self.client.get(
-                "/api/services",
-                headers=self.auth_headers,
-            )
+            response = self.client.get("/api/services")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()[0]["id"], "1234567890ab")
@@ -279,10 +233,7 @@ class RouteTests(unittest.TestCase):
         )
 
         with patch.object(app_module, "get_compose_project", return_value=None):
-            response = self.client.get(
-                "/api/services",
-                headers=self.auth_headers,
-            )
+            response = self.client.get("/api/services")
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.get_json(), {"error": "Docker operation failed"})
