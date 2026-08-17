@@ -1,0 +1,132 @@
+name: overseer-test
+
+services:
+  overseer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: overseer:local
+    ports:
+      - "8000:8000"
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    restart: unless-stopped
+
+  api-gateway:
+    image: python:3.11-slim
+    ports:
+      - "8080:8080"
+    depends_on:
+      service-a:
+        condition: service_healthy
+      service-b:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /www
+        printf '{"service":"api-gateway","dependencies":["service-a","service-b"]}\n' > /www/index.html
+        exec python -m http.server 8080 --directory /www
+    restart: unless-stopped
+
+  service-a:
+    image: python:3.11-slim
+    expose:
+      - "8001"
+    depends_on:
+      service-a-db:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /www
+        printf '{"service":"service-a","database":"service-a-db"}\n' > /www/index.html
+        printf 'ok\n' > /www/health
+        exec python -m http.server 8001 --directory /www
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    restart: unless-stopped
+
+  service-a-db:
+    image: alpine:3.20
+    command:
+      - /bin/sh
+      - -c
+      - |
+        touch /tmp/ready
+        exec tail -f /dev/null
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    restart: unless-stopped
+
+  service-b:
+    image: python:3.11-slim
+    expose:
+      - "8002"
+    depends_on:
+      service-b-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /www
+        printf '{"service":"service-b","database":"service-b-db","cache":"redis"}\n' > /www/index.html
+        printf 'ok\n' > /www/health
+        exec python -m http.server 8002 --directory /www
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    restart: unless-stopped
+
+  service-b-db:
+    image: alpine:3.20
+    command:
+      - /bin/sh
+      - -c
+      - |
+        touch /tmp/ready
+        exec tail -f /dev/null
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: alpine:3.20
+    command:
+      - /bin/sh
+      - -c
+      - |
+        touch /tmp/ready
+        exec tail -f /dev/null
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    restart: unless-stopped

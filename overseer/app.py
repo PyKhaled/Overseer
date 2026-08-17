@@ -7,6 +7,8 @@ from flask import Flask, jsonify, render_template, request
 
 
 COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
+COMPOSE_SERVICE_LABEL = "com.docker.compose.service"
+COMPOSE_DEPENDS_ON_LABEL = "com.docker.compose.depends_on"
 CSRF_HEADER = "X-Overseer-CSRF"
 CSRF_HEADER_VALUE = "1"
 
@@ -30,6 +32,83 @@ def get_ports(container):
         else:
             result[container_port] = None
     return result
+
+
+def get_compose_dependencies(container):
+    labels = container.attrs.get("Config", {}).get("Labels") or {}
+    dependency_value = labels.get(COMPOSE_DEPENDS_ON_LABEL, "")
+    dependencies = []
+    for dependency in dependency_value.split(","):
+        service_name = dependency.split(":", 1)[0].strip()
+        if service_name and service_name not in dependencies:
+            dependencies.append(service_name)
+    return dependencies
+
+
+def calculate_cpu_percent(stats):
+    cpu_stats = stats.get("cpu_stats") or {}
+    previous_cpu_stats = stats.get("precpu_stats") or {}
+    cpu_usage = cpu_stats.get("cpu_usage") or {}
+    previous_cpu_usage = previous_cpu_stats.get("cpu_usage") or {}
+    cpu_delta = cpu_usage.get("total_usage", 0) - previous_cpu_usage.get(
+        "total_usage",
+        0,
+    )
+    system_delta = cpu_stats.get("system_cpu_usage", 0) - (
+        previous_cpu_stats.get("system_cpu_usage", 0)
+    )
+    online_cpus = cpu_stats.get("online_cpus") or len(
+        cpu_usage.get("percpu_usage") or []
+    ) or 1
+    if cpu_delta <= 0 or system_delta <= 0:
+        return 0.0
+    return round((cpu_delta / system_delta) * online_cpus * 100, 2)
+
+
+def get_memory_metrics(stats):
+    memory_stats = stats.get("memory_stats") or {}
+    raw_usage = memory_stats.get("usage", 0)
+    memory_details = memory_stats.get("stats") or {}
+    cache = memory_details.get(
+        "inactive_file",
+        memory_details.get("total_inactive_file", 0),
+    )
+    usage = max(0, raw_usage - cache)
+    limit = memory_stats.get("limit", 0)
+    percent = (usage / limit) * 100 if limit else 0.0
+    return {
+        "usage": usage,
+        "limit": limit,
+        "percent": round(percent, 2),
+    }
+
+
+def inspect_container_metrics(container):
+    if container.status != "running":
+        return {
+            "cpu_percent": None,
+            "memory_usage": None,
+            "memory_limit": None,
+            "memory_percent": None,
+        }
+
+    try:
+        stats = container.stats(stream=False)
+    except docker.errors.DockerException:
+        return {
+            "cpu_percent": None,
+            "memory_usage": None,
+            "memory_limit": None,
+            "memory_percent": None,
+        }
+
+    memory = get_memory_metrics(stats)
+    return {
+        "cpu_percent": calculate_cpu_percent(stats),
+        "memory_usage": memory["usage"],
+        "memory_limit": memory["limit"],
+        "memory_percent": memory["percent"],
+    }
 
 
 def parse_docker_datetime(value):
@@ -115,18 +194,116 @@ def get_project_container(client, container_id):
 
 
 def inspect_container(container):
-    image = container.attrs.get("Config", {}).get("Image")
+    config = container.attrs.get("Config", {})
+    labels = config.get("Labels") or {}
+    image = config.get("Image")
     if not image:
         image = container.attrs.get("Image", "unknown")
 
     return {
         "id": container.id[:12],
         "name": container.name,
+        "service": labels.get(COMPOSE_SERVICE_LABEL, container.name),
+        "dependencies": get_compose_dependencies(container),
         "status": container.status,
         "image": image,
         "ports": get_ports(container),
         "started_at": get_started_at(container),
         "uptime": get_uptime(container),
+    }
+
+
+def build_project_dashboard(client):
+    containers = list_project_containers(client)
+    project_name = get_compose_project(client)
+    service_metrics = {}
+    images = set()
+    running = 0
+    restarting = 0
+    healthy = 0
+    unhealthy = 0
+
+    for container in containers:
+        details = inspect_container(container)
+        metrics = inspect_container_metrics(container)
+        service_name = details["service"]
+        service = service_metrics.setdefault(
+            service_name,
+            {
+                "name": service_name,
+                "containers": 0,
+                "running": 0,
+                "cpu_percent": 0.0,
+                "memory_usage": 0,
+                "memory_limit": 0,
+                "metrics_available": False,
+            },
+        )
+        service["containers"] += 1
+        if container.status == "running":
+            running += 1
+            service["running"] += 1
+        elif container.status == "restarting":
+            restarting += 1
+
+        health = (
+            container.attrs.get("State", {}).get("Health", {}).get("Status")
+        )
+        if health == "healthy":
+            healthy += 1
+        elif health == "unhealthy":
+            unhealthy += 1
+
+        images.add(details["image"])
+        if metrics["cpu_percent"] is not None:
+            service["metrics_available"] = True
+            service["cpu_percent"] += metrics["cpu_percent"]
+            service["memory_usage"] += metrics["memory_usage"]
+            service["memory_limit"] += metrics["memory_limit"]
+
+    total_cpu = 0.0
+    total_memory = 0
+    total_memory_limit = 0
+    metrics_available = False
+    services = []
+    for service in sorted(service_metrics.values(), key=lambda item: item["name"]):
+        service["cpu_percent"] = round(service["cpu_percent"], 2)
+        service["memory_percent"] = round(
+            (service["memory_usage"] / service["memory_limit"]) * 100,
+            2,
+        ) if service["memory_limit"] else 0.0
+        total_cpu += service["cpu_percent"]
+        total_memory += service["memory_usage"]
+        total_memory_limit += service["memory_limit"]
+        metrics_available = metrics_available or service["metrics_available"]
+        services.append(service)
+
+    container_count = len(containers)
+    return {
+        "project": {
+            "name": project_name or "Docker host",
+            "compose_scoped": project_name is not None,
+            "services": len(service_metrics),
+            "containers": container_count,
+            "images": len(images),
+            "running": running,
+            "restarting": restarting,
+            "stopped": container_count - running - restarting,
+            "healthy": healthy,
+            "unhealthy": unhealthy,
+        },
+        "resources": {
+            "metrics_available": metrics_available,
+            "cpu_percent": round(total_cpu, 2),
+            "memory_usage": total_memory,
+            "memory_limit": total_memory_limit,
+            "memory_percent": round(
+                (total_memory / total_memory_limit) * 100,
+                2,
+            ) if total_memory_limit else 0.0,
+        },
+        "services": services,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -160,12 +337,24 @@ def create_app(config=None):
 
     @application.route("/")
     def index():
+        return render_template("dashboard.html")
+
+    @application.route("/dependencies")
+    def dependencies():
         return render_template("index.html")
+
+    @application.route("/services")
+    def service_controls():
+        return render_template("services.html")
 
     @application.route("/api/services")
     def services():
         containers = list_project_containers(get_client())
         return jsonify([inspect_container(container) for container in containers])
+
+    @application.route("/api/dashboard")
+    def dashboard():
+        return jsonify(build_project_dashboard(get_client()))
 
     @application.route("/api/service/<container_id>/restart", methods=["POST"])
     def restart_service(container_id):

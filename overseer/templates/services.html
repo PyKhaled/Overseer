@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Service Controls · Overseer{% endblock %}
+
+{% block styles %}
+    .page-header { margin-bottom: 16px; }
+    .page-header p { margin-bottom: 0; color: #9ca3af; font-size: 12px; }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      padding: 16px;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      background: #111827;
+      scroll-margin-top: 20px;
+    }
+
+    .card:focus { outline: 2px solid #60a5fa; outline-offset: 3px; }
+
+    .status {
+      margin-left: 8px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 11px;
+      text-transform: capitalize;
+    }
+
+    .green { background: #16a34a; }
+    .red { background: #dc2626; }
+    .yellow { background: #ca8a04; }
+    .gray { background: #374151; }
+
+    .meta {
+      margin-top: 8px;
+      color: #9ca3af;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .ports a {
+      display: inline-block;
+      margin: 4px 6px 0 0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #1f2937;
+      color: #60a5fa;
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .ports a:hover { background: #374151; }
+    .protocol { margin-left: 4px; color: #9ca3af; font-size: 10px; }
+
+    button {
+      margin-top: 10px;
+      margin-right: 5px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .start { background: #16a34a; }
+    .stop { background: #dc2626; }
+    .restart { background: #2563eb; }
+    button:disabled { cursor: wait; opacity: 0.65; }
+
+    .empty {
+      padding: 36px;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .container { grid-template-columns: 1fr; }
+    }
+{% endblock %}
+
+{% block content %}
+  <section aria-labelledby="services-title">
+    <div class="page-header">
+      <h1 id="services-title">Service controls</h1>
+      <p>Inspect containers and start, stop, or restart services in this Compose project.</p>
+    </div>
+    <div class="container" id="grid"></div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function statusClass(status) {
+    const normalized = (status || "").toLowerCase();
+    if (normalized === "running") return "green";
+    if (normalized === "exited") return "red";
+    if (normalized === "restarting") return "yellow";
+    return "gray";
+  }
+
+  function buildUrl(protocol, host, port) {
+    if (!host || !port) return null;
+    const resolvedHost = (host === "0.0.0.0" || host === "::")
+      ? window.location.hostname
+      : host;
+    const urlHost = resolvedHost.includes(":") ? `[${resolvedHost}]` : resolvedHost;
+    return `${protocol}://${urlHost}:${port}`;
+  }
+
+  function addTextRow(parent, label, value) {
+    const row = document.createElement("div");
+    row.textContent = `${label}: ${value ?? "Unavailable"}`;
+    parent.appendChild(row);
+  }
+
+  function renderPorts(parent, ports) {
+    const seen = new Set();
+    let rendered = false;
+
+    Object.entries(ports || {}).forEach(([containerPort, mappings]) => {
+      if (!Array.isArray(mappings)) return;
+
+      mappings.forEach(mapping => {
+        const host = mapping?.host_ip;
+        const port = mapping?.host_port;
+        const exposedPort = containerPort.split("/")[0];
+        const protocol = exposedPort === "443" || exposedPort === "8443"
+          ? "https"
+          : "http";
+        const url = buildUrl(protocol, host, port);
+        if (!url || seen.has(url)) return;
+
+        seen.add(url);
+        rendered = true;
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.append(document.createTextNode(containerPort));
+
+        const protocolLabel = document.createElement("span");
+        protocolLabel.className = "protocol";
+        protocolLabel.textContent = `(${protocol.toUpperCase()})`;
+        link.appendChild(protocolLabel);
+        parent.appendChild(link);
+      });
+    });
+
+    if (!rendered) {
+      const empty = document.createElement("span");
+      empty.style.color = "#6b7280";
+      empty.textContent = "No ports published";
+      parent.appendChild(empty);
+    }
+  }
+
+  async function action(type, id, button) {
+    button.disabled = true;
+    try {
+      await window.Overseer.requestJson(
+        `/api/service/${encodeURIComponent(id)}/${type}`,
+        {
+          method: "POST",
+          headers: { "X-Overseer-CSRF": "1" }
+        }
+      );
+      window.Overseer.clearError();
+      await load();
+    } catch (error) {
+      window.Overseer.showError(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function createActionButton(type, id) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = type;
+    button.textContent = type[0].toUpperCase() + type.slice(1);
+    button.addEventListener("click", () => action(type, id, button));
+    return button;
+  }
+
+  function renderService(service, usedAnchors) {
+    const card = document.createElement("div");
+    const serviceName = service.service || service.name || service.id;
+    const baseAnchor = window.Overseer.serviceAnchor(serviceName);
+    const anchor = usedAnchors.has(baseAnchor)
+      ? `${baseAnchor}-${service.id}`
+      : baseAnchor;
+    usedAnchors.add(anchor);
+
+    card.className = "card";
+    card.id = anchor;
+    card.tabIndex = -1;
+    card.dataset.service = serviceName;
+
+    const heading = document.createElement("div");
+    const name = document.createElement("b");
+    name.textContent = service.name || "Unnamed container";
+    heading.appendChild(name);
+
+    const status = document.createElement("span");
+    status.className = `status ${statusClass(service.status)}`;
+    status.textContent = service.status || "unknown";
+    heading.appendChild(status);
+    card.appendChild(heading);
+
+    const metadata = document.createElement("div");
+    metadata.className = "meta";
+    addTextRow(metadata, "Service", service.service);
+    addTextRow(metadata, "Container", service.id);
+    addTextRow(metadata, "Image", service.image);
+    addTextRow(
+      metadata,
+      "Depends on",
+      service.dependencies?.length ? service.dependencies.join(", ") : "None"
+    );
+
+    const ports = document.createElement("div");
+    ports.className = "ports";
+    const portsLabel = document.createElement("b");
+    portsLabel.textContent = "Ports:";
+    ports.appendChild(portsLabel);
+    ports.appendChild(document.createElement("br"));
+    renderPorts(ports, service.ports);
+    metadata.appendChild(ports);
+
+    addTextRow(metadata, "Started", service.started_at);
+    addTextRow(metadata, "Uptime", service.uptime);
+    card.appendChild(metadata);
+
+    ["restart", "stop", "start"].forEach(type => {
+      card.appendChild(createActionButton(type, service.id));
+    });
+    return card;
+  }
+
+  function focusRequestedService() {
+    if (!window.location.hash) return;
+    const targetId = decodeURIComponent(window.location.hash.slice(1));
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    target.scrollIntoView({ block: "center" });
+    target.focus({ preventScroll: true });
+  }
+
+  let loadInProgress = false;
+
+  async function load() {
+    if (loadInProgress) return;
+    loadInProgress = true;
+
+    try {
+      const services = await window.Overseer.requestJson("/api/services");
+      const grid = document.getElementById("grid");
+      if (services.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No services found in this Compose project";
+        grid.replaceChildren(empty);
+      } else {
+        const usedAnchors = new Set();
+        grid.replaceChildren(
+          ...services.map(service => renderService(service, usedAnchors))
+        );
+        focusRequestedService();
+      }
+      window.Overseer.clearError();
+    } catch (error) {
+      window.Overseer.showError(error.message);
+    } finally {
+      loadInProgress = false;
+    }
+  }
+
+  async function poll() {
+    await load();
+    window.setTimeout(poll, 5000);
+  }
+
+  window.addEventListener("hashchange", focusRequestedService);
+  poll();
+</script>
+{% endblock %}

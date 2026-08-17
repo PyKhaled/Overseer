@@ -33,6 +33,8 @@ View:
 - Container status
 - Images
 - Container identifiers
+- Declared service dependencies as an interactive graph
+- Project-level and per-service CPU and memory usage
 
 ### Project-Oriented
 
@@ -67,6 +69,8 @@ Open:
 http://localhost:8000
 ```
 
+Use the dashboard navigation to switch between the project overview at `/`, dependency graph at `/dependencies`, and container controls at `/services`. Selecting a service in the graph opens its matching control card.
+
 ---
 
 ## Example
@@ -76,20 +80,34 @@ services:
   overseer:
     image: ghcr.io/pykhaled/overseer:latest
 
-  frontend:
-    image: my-frontend
+  api-gateway:
+    image: my-api-gateway
+    depends_on:
+      - service-a
+      - service-b
 
-  backend:
-    image: my-backend
+  service-a:
+    image: my-service-a
+    depends_on:
+      - service-a-db
 
-  mongo:
-    image: mongo
+  service-a-db:
+    image: postgres
+
+  service-b:
+    image: my-service-b
+    depends_on:
+      - service-b-db
+      - redis
+
+  service-b-db:
+    image: postgres
 
   redis:
     image: redis
 ```
 
-Overseer automatically discovers the services belonging to the project and provides a centralized view of their state.
+Overseer automatically discovers the services belonging to the project and uses declared `depends_on` relationships to render the architecture graph.
 
 ---
 
@@ -156,7 +174,6 @@ Planned features include:
 - CPU and memory metrics
 - Live logs
 - Health checks
-- Service dependency graph
 - Docker events stream
 - Project metadata
 - Multi-host support

@@ -1,312 +1,380 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Overseer Dashboard</title>
+{% block title %}Service Dependencies · Overseer{% endblock %}
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #0f172a;
-      color: #e5e7eb;
-    }
-
-    header {
-      padding: 18px 20px;
-      background: #111827;
-      border-bottom: 1px solid #1f2937;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .container {
-      padding: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 16px;
-    }
-
-    .card {
-      background: #111827;
+{% block styles %}
+    .graph-panel {
       border: 1px solid #1f2937;
       border-radius: 12px;
+      background: #111827;
+      overflow: hidden;
+    }
+
+    .graph-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
       padding: 16px;
+      border-bottom: 1px solid #1f2937;
     }
 
-    .status {
-      padding: 3px 8px;
-      border-radius: 999px;
+    .graph-header p { margin-bottom: 0; color: #9ca3af; font-size: 12px; }
+
+    .graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      color: #9ca3af;
       font-size: 11px;
-      margin-left: 8px;
-      color: white;
-      text-transform: capitalize;
     }
 
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 999px; }
     .green { background: #16a34a; }
     .red { background: #dc2626; }
     .yellow { background: #ca8a04; }
     .gray { background: #374151; }
 
-    .meta {
-      font-size: 12px;
+    .graph-viewport { min-height: 220px; overflow-x: auto; padding: 12px; }
+    .dependency-graph { display: block; min-width: 100%; }
+    .graph-edge { fill: none; stroke: #475569; stroke-width: 2; }
+    .graph-node { cursor: pointer; }
+    .graph-node:focus-visible rect { stroke: #60a5fa; stroke-width: 3; }
+    .graph-node rect { fill: #0f172a; stroke: #334155; stroke-width: 1.5; }
+    .graph-node circle { fill: #6b7280; }
+    .graph-node.missing { cursor: default; }
+    .graph-node.missing rect { fill: #1f2937; stroke-dasharray: 6 4; }
+    .graph-node-name { fill: #e5e7eb; font-size: 13px; font-weight: 600; }
+    .graph-node-meta { fill: #9ca3af; font-size: 11px; }
+    .graph-status-running { fill: #16a34a; }
+    .graph-status-exited { fill: #dc2626; }
+    .graph-status-restarting,
+    .graph-status-mixed { fill: #ca8a04; }
+    .graph-status-missing,
+    .graph-status-unknown { fill: #6b7280; }
+
+    .graph-empty {
+      display: grid;
+      min-height: 196px;
+      place-items: center;
       color: #9ca3af;
-      margin-top: 8px;
-      line-height: 1.5;
-    }
-
-    .ports a {
-      display: inline-block;
-      margin: 4px 6px 0 0;
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: #1f2937;
-      color: #60a5fa;
-      text-decoration: none;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .ports a:hover {
-      background: #374151;
-    }
-
-    .protocol {
-      font-size: 10px;
-      margin-left: 4px;
-      color: #9ca3af;
-    }
-
-    button {
-      margin-top: 10px;
-      margin-right: 5px;
-      padding: 6px 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 11px;
-      color: white;
-    }
-
-    .start { background: #16a34a; }
-    .stop { background: #dc2626; }
-    .restart { background: #2563eb; }
-
-    button:disabled {
-      cursor: wait;
-      opacity: 0.65;
-    }
-
-    .message {
-      display: none;
-      margin: 16px 20px 0;
-      padding: 10px 12px;
-      border: 1px solid #7f1d1d;
-      border-radius: 6px;
-      background: #450a0a;
-      color: #fecaca;
       font-size: 13px;
     }
-  </style>
-</head>
 
-<body>
+    @media (max-width: 640px) {
+      .graph-header { display: block; }
+      .graph-legend { justify-content: flex-start; margin-top: 12px; }
+    }
+{% endblock %}
 
-<header>
-  <div>🧠 Overseer Dashboard</div>
-</header>
+{% block content %}
+  <section class="graph-panel" aria-labelledby="graph-title">
+    <div class="graph-header">
+      <div>
+        <h1 id="graph-title">Service dependencies</h1>
+        <p>Arrows point from each service to the services it depends on. Select a service to open its controls.</p>
+      </div>
+      <div class="graph-legend" aria-label="Service status legend">
+        <span class="legend-item"><span class="legend-dot green"></span>Running</span>
+        <span class="legend-item"><span class="legend-dot yellow"></span>Mixed</span>
+        <span class="legend-item"><span class="legend-dot red"></span>Stopped</span>
+        <span class="legend-item"><span class="legend-dot gray"></span>Missing</span>
+      </div>
+    </div>
+    <div class="graph-viewport" id="graph"></div>
+  </section>
+{% endblock %}
 
-<div class="message" id="message" role="alert"></div>
-<div class="container" id="grid"></div>
-
-
-<footer style="text-align:center; padding:14px; font-size:11px; color:#6b7280; border-top:1px solid #1f2937; margin-top:20px;">
-  © 2026 PyKhaled. All rights reserved.
-  <br/>
-  Built for internal infrastructure management •
-
-  <a href="mailto:ahmedaka@icloud.com" style="color:#60a5fa; text-decoration:none;">Contact</a>
-</footer>
-
-
-
-
-
+{% block scripts %}
 <script>
-  function statusClass(s) {
-    s = (s || "").toLowerCase();
-    if (s === "running") return "green";
-    if (s === "exited") return "red";
-    if (s === "restarting") return "yellow";
-    return "gray";
+  const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+  const serviceControlsUrl = "{{ url_for('service_controls') }}";
+
+  function createSvgElement(name, attributes = {}) {
+    const element = document.createElementNS(SVG_NAMESPACE, name);
+    Object.entries(attributes).forEach(([key, value]) => {
+      element.setAttribute(key, value);
+    });
+    return element;
   }
 
-  function showError(message) {
-    const element = document.getElementById("message");
-    element.textContent = message;
-    element.style.display = "block";
+  function aggregateStatus(statuses) {
+    const uniqueStatuses = [...new Set(statuses.filter(Boolean))];
+    if (uniqueStatuses.length === 0) return "unknown";
+    if (uniqueStatuses.length === 1) return uniqueStatuses[0];
+    return "mixed";
   }
 
-  function clearError() {
-    const element = document.getElementById("message");
-    element.textContent = "";
-    element.style.display = "none";
-  }
+  function buildGraphNodes(services) {
+    const nodes = new Map();
 
-  async function requestJson(url, options = {}) {
-    const response = await fetch(url, options);
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch (error) {
-      if (response.ok) {
-        throw new Error("The server returned an invalid response");
+    services.forEach(container => {
+      const serviceName = container.service || container.name || container.id;
+      if (!nodes.has(serviceName)) {
+        nodes.set(serviceName, {
+          name: serviceName,
+          containers: [],
+          dependencies: new Set(),
+          missing: false
+        });
       }
-    }
 
-    if (!response.ok) {
-      throw new Error(payload?.error || `Request failed (${response.status})`);
-    }
-
-    return payload;
-  }
-
-  function buildUrl(protocol, host, port) {
-    if (!host || !port) return null;
-    const resolvedHost = (host === "0.0.0.0" || host === "::")
-      ? window.location.hostname
-      : host;
-    const urlHost = resolvedHost.includes(":") ? `[${resolvedHost}]` : resolvedHost;
-    return `${protocol}://${urlHost}:${port}`;
-  }
-
-  function addTextRow(parent, label, value) {
-    const row = document.createElement("div");
-    row.textContent = `${label}: ${value ?? "Unavailable"}`;
-    parent.appendChild(row);
-  }
-
-  function renderPorts(parent, ports) {
-    const seen = new Set();
-    let rendered = false;
-
-    Object.entries(ports || {}).forEach(([containerPort, mappings]) => {
-      if (!Array.isArray(mappings)) return;
-
-      mappings.forEach(mapping => {
-        const host = mapping?.host_ip;
-        const port = mapping?.host_port;
-        const exposedPort = containerPort.split("/")[0];
-        const protocol = exposedPort === "443" || exposedPort === "8443"
-          ? "https"
-          : "http";
-        const url = buildUrl(protocol, host, port);
-        if (!url || seen.has(url)) return;
-
-        seen.add(url);
-        rendered = true;
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.append(document.createTextNode(containerPort));
-
-        const protocolLabel = document.createElement("span");
-        protocolLabel.className = "protocol";
-        protocolLabel.textContent = `(${protocol.toUpperCase()})`;
-        link.appendChild(protocolLabel);
-        parent.appendChild(link);
+      const node = nodes.get(serviceName);
+      node.containers.push(container);
+      (container.dependencies || []).forEach(dependency => {
+        node.dependencies.add(dependency);
       });
     });
 
-    if (!rendered) {
-      const empty = document.createElement("span");
-      empty.style.color = "#6b7280";
-      empty.textContent = "No ports published";
-      parent.appendChild(empty);
-    }
-  }
-
-  async function action(type, id, button) {
-    button.disabled = true;
-    try {
-      await requestJson(`/api/service/${encodeURIComponent(id)}/${type}`, {
-        method: "POST",
-        headers: { "X-Overseer-CSRF": "1" }
+    [...nodes.values()].forEach(node => {
+      node.dependencies.forEach(dependency => {
+        if (!nodes.has(dependency)) {
+          nodes.set(dependency, {
+            name: dependency,
+            containers: [],
+            dependencies: new Set(),
+            missing: true
+          });
+        }
       });
-      clearError();
-      await load();
-    } catch (error) {
-      showError(error.message);
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  function createActionButton(type, id) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = type;
-    button.textContent = type[0].toUpperCase() + type.slice(1);
-    button.addEventListener("click", () => action(type, id, button));
-    return button;
-  }
-
-  function renderService(service) {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const heading = document.createElement("div");
-    const name = document.createElement("b");
-    name.textContent = service.name || "Unnamed container";
-    heading.appendChild(name);
-
-    const status = document.createElement("span");
-    status.className = `status ${statusClass(service.status)}`;
-    status.textContent = service.status || "unknown";
-    heading.appendChild(status);
-    card.appendChild(heading);
-
-    const metadata = document.createElement("div");
-    metadata.className = "meta";
-    addTextRow(metadata, "Container", service.id);
-    addTextRow(metadata, "Image", service.image);
-
-    const ports = document.createElement("div");
-    ports.className = "ports";
-    const portsLabel = document.createElement("b");
-    portsLabel.textContent = "Ports:";
-    ports.appendChild(portsLabel);
-    ports.appendChild(document.createElement("br"));
-    renderPorts(ports, service.ports);
-    metadata.appendChild(ports);
-
-    addTextRow(metadata, "Started", service.started_at);
-    addTextRow(metadata, "Uptime", service.uptime);
-    card.appendChild(metadata);
-
-    ["restart", "stop", "start"].forEach(type => {
-      card.appendChild(createActionButton(type, service.id));
     });
-    return card;
+
+    nodes.forEach(node => {
+      node.status = node.missing
+        ? "missing"
+        : aggregateStatus(node.containers.map(container => container.status));
+    });
+    return nodes;
+  }
+
+  function buildGraphLayers(nodes) {
+    const incomingEdges = new Map();
+    const depths = new Map();
+
+    nodes.forEach((node, name) => {
+      incomingEdges.set(name, 0);
+      depths.set(name, 0);
+    });
+
+    nodes.forEach(node => {
+      node.dependencies.forEach(dependency => {
+        incomingEdges.set(dependency, (incomingEdges.get(dependency) || 0) + 1);
+      });
+    });
+
+    const queue = [...nodes.keys()]
+      .filter(name => incomingEdges.get(name) === 0)
+      .sort();
+    const processed = new Set();
+
+    while (queue.length > 0) {
+      const name = queue.shift();
+      const node = nodes.get(name);
+      processed.add(name);
+
+      node.dependencies.forEach(dependency => {
+        depths.set(
+          dependency,
+          Math.max(depths.get(dependency) || 0, (depths.get(name) || 0) + 1)
+        );
+        incomingEdges.set(dependency, incomingEdges.get(dependency) - 1);
+        if (incomingEdges.get(dependency) === 0) {
+          queue.push(dependency);
+          queue.sort();
+        }
+      });
+    }
+
+    const unresolvedDepth = Math.max(0, ...depths.values()) + 1;
+    nodes.forEach((node, name) => {
+      if (!processed.has(name)) depths.set(name, unresolvedDepth);
+    });
+
+    const layers = new Map();
+    nodes.forEach((node, name) => {
+      const depth = depths.get(name);
+      if (!layers.has(depth)) layers.set(depth, []);
+      layers.get(depth).push(name);
+    });
+    layers.forEach(layer => layer.sort());
+    return [...layers.entries()].sort(([left], [right]) => left - right);
+  }
+
+  function openServiceControls(serviceName) {
+    const anchor = window.Overseer.serviceAnchor(serviceName);
+    window.location.assign(`${serviceControlsUrl}#${encodeURIComponent(anchor)}`);
+  }
+
+  function renderDependencyGraph(services) {
+    const graph = document.getElementById("graph");
+    graph.replaceChildren();
+
+    if (services.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "graph-empty";
+      empty.textContent = "No services found in this Compose project";
+      graph.appendChild(empty);
+      return;
+    }
+
+    const nodes = buildGraphNodes(services);
+    const layers = buildGraphLayers(nodes);
+    const nodeWidth = 190;
+    const nodeHeight = 70;
+    const horizontalGap = 48;
+    const verticalGap = 86;
+    const padding = 32;
+    const widestLayer = Math.max(...layers.map(([, names]) => names.length));
+    const contentWidth = widestLayer * nodeWidth
+      + Math.max(0, widestLayer - 1) * horizontalGap
+      + padding * 2;
+    const graphWidth = Math.max(graph.clientWidth - 24, contentWidth, 360);
+    const graphHeight = layers.length * nodeHeight
+      + Math.max(0, layers.length - 1) * verticalGap
+      + padding * 2;
+    const positions = new Map();
+
+    layers.forEach(([, names], layerIndex) => {
+      const layerWidth = names.length * nodeWidth
+        + Math.max(0, names.length - 1) * horizontalGap;
+      const startX = (graphWidth - layerWidth) / 2;
+      names.forEach((name, index) => {
+        positions.set(name, {
+          x: startX + index * (nodeWidth + horizontalGap),
+          y: padding + layerIndex * (nodeHeight + verticalGap)
+        });
+      });
+    });
+
+    const svg = createSvgElement("svg", {
+      class: "dependency-graph",
+      viewBox: `0 0 ${graphWidth} ${graphHeight}`,
+      width: graphWidth,
+      height: graphHeight,
+      role: "img",
+      "aria-label": "Docker Compose service dependency graph"
+    });
+    const title = createSvgElement("title");
+    title.textContent = "Docker Compose service dependencies";
+    svg.appendChild(title);
+    const description = createSvgElement("desc");
+    description.textContent = "Arrows connect each service to its dependencies.";
+    svg.appendChild(description);
+
+    const definitions = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "dependency-arrow",
+      markerWidth: "8",
+      markerHeight: "8",
+      refX: "7",
+      refY: "4",
+      orient: "auto",
+      markerUnits: "strokeWidth"
+    });
+    marker.appendChild(createSvgElement("path", {
+      d: "M 0 0 L 8 4 L 0 8 z",
+      fill: "#475569"
+    }));
+    definitions.appendChild(marker);
+    svg.appendChild(definitions);
+
+    nodes.forEach((node, name) => {
+      const source = positions.get(name);
+      node.dependencies.forEach(dependency => {
+        const target = positions.get(dependency);
+        if (!source || !target) return;
+
+        const startX = source.x + nodeWidth / 2;
+        const startY = source.y + nodeHeight;
+        const endX = target.x + nodeWidth / 2;
+        const endY = target.y;
+        const curve = Math.max(36, (endY - startY) / 2);
+        const edge = createSvgElement("path", {
+          class: "graph-edge",
+          d: `M ${startX} ${startY} C ${startX} ${startY + curve}, ${endX} ${endY - curve}, ${endX} ${endY}`,
+          "marker-end": "url(#dependency-arrow)"
+        });
+        svg.appendChild(edge);
+      });
+    });
+
+    nodes.forEach((node, name) => {
+      const position = positions.get(name);
+      const group = createSvgElement("g", {
+        class: `graph-node${node.missing ? " missing" : ""}`,
+        transform: `translate(${position.x} ${position.y})`
+      });
+      const nodeTitle = createSvgElement("title");
+      nodeTitle.textContent = node.missing
+        ? `${name}: configured dependency is not running`
+        : `${name}: ${node.status}`;
+      group.appendChild(nodeTitle);
+      group.appendChild(createSvgElement("rect", {
+        width: nodeWidth,
+        height: nodeHeight,
+        rx: "8"
+      }));
+      group.appendChild(createSvgElement("circle", {
+        class: `graph-status-${node.status}`,
+        cx: "18",
+        cy: "23",
+        r: "5"
+      }));
+
+      const nameLabel = createSvgElement("text", {
+        class: "graph-node-name",
+        x: "31",
+        y: "27"
+      });
+      nameLabel.textContent = name.length > 22
+        ? `${name.slice(0, 21)}…`
+        : name;
+      group.appendChild(nameLabel);
+
+      const metadata = createSvgElement("text", {
+        class: "graph-node-meta",
+        x: "18",
+        y: "50"
+      });
+      const containerCount = node.containers.length;
+      metadata.textContent = node.missing
+        ? "Not created"
+        : `${node.status} • ${containerCount} container${containerCount === 1 ? "" : "s"}`;
+      group.appendChild(metadata);
+
+      if (!node.missing) {
+        group.setAttribute("role", "link");
+        group.setAttribute("tabindex", "0");
+        group.setAttribute("aria-label", `View controls for ${name}`);
+        group.addEventListener("click", () => openServiceControls(name));
+        group.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openServiceControls(name);
+          }
+        });
+      }
+      svg.appendChild(group);
+    });
+
+    graph.appendChild(svg);
   }
 
   let loadInProgress = false;
+  let latestServices = [];
 
   async function load() {
     if (loadInProgress) return;
     loadInProgress = true;
 
     try {
-      const services = await requestJson("/api/services");
-      const cards = services.map(renderService);
-      document.getElementById("grid").replaceChildren(...cards);
-      clearError();
+      latestServices = await window.Overseer.requestJson("/api/services");
+      renderDependencyGraph(latestServices);
+      window.Overseer.clearError();
     } catch (error) {
-      showError(error.message);
+      window.Overseer.showError(error.message);
     } finally {
       loadInProgress = false;
     }
@@ -317,8 +385,14 @@
     window.setTimeout(poll, 5000);
   }
 
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      renderDependencyGraph(latestServices);
+    }, 150);
+  });
+
   poll();
 </script>
-
-</body>
-</html>
+{% endblock %}

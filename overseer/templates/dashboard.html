@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Project Overview · Overseer{% endblock %}
+
+{% block styles %}
+    .overview-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .overview-header p,
+    .updated-at {
+      margin-bottom: 0;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    .updated-at { white-space: nowrap; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .summary-card,
+    .resource-panel,
+    .services-panel {
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      background: #111827;
+    }
+
+    .summary-card { padding: 16px; }
+
+    .summary-label {
+      color: #9ca3af;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .summary-value {
+      display: block;
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .summary-detail {
+      display: block;
+      margin-top: 5px;
+      color: #6b7280;
+      font-size: 11px;
+    }
+
+    .status-running { color: #4ade80; }
+    .status-warning { color: #facc15; }
+    .status-stopped { color: #f87171; }
+
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .resource-panel { padding: 18px; }
+
+    .resource-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .resource-heading h2 { margin-bottom: 0; }
+    .resource-value { color: #e5e7eb; font-size: 18px; font-weight: 600; }
+
+    .meter {
+      height: 9px;
+      border-radius: 999px;
+      background: #1f2937;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: #3b82f6;
+      transition: width 0.25s ease;
+    }
+
+    .memory-fill { background: #8b5cf6; }
+
+    .meter-caption {
+      margin-top: 8px;
+      color: #9ca3af;
+      font-size: 11px;
+    }
+
+    .services-panel { overflow: hidden; }
+
+    .services-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .services-header h2 { margin-bottom: 0; }
+
+    .services-header a {
+      color: #60a5fa;
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .service-metrics { display: grid; }
+
+    .service-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1.5fr) minmax(120px, 1fr) minmax(180px, 1.5fr);
+      align-items: center;
+      gap: 18px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .service-row:last-child { border-bottom: none; }
+    .service-name { font-size: 13px; font-weight: 600; }
+    .service-state { margin-top: 4px; color: #9ca3af; font-size: 11px; }
+    .metric-label { color: #9ca3af; font-size: 11px; }
+    .metric-value { display: block; margin-top: 4px; font-size: 13px; }
+
+    .service-memory .meter { margin-top: 6px; height: 6px; }
+
+    .empty {
+      padding: 32px 16px;
+      color: #9ca3af;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      .overview-header { display: block; }
+      .updated-at { margin-top: 8px; }
+      .resource-grid { grid-template-columns: 1fr; }
+      .service-row { grid-template-columns: 1fr 1fr; }
+      .service-memory { grid-column: 1 / -1; }
+    }
+{% endblock %}
+
+{% block content %}
+  <div class="overview-header">
+    <div>
+      <h1 id="project-name">Project overview</h1>
+      <p id="project-scope">Loading Compose project metadata…</p>
+    </div>
+    <div class="updated-at" id="updated-at" aria-live="polite">Waiting for metrics…</div>
+  </div>
+
+  <section class="summary-grid" aria-label="Project metadata">
+    <div class="summary-card">
+      <span class="summary-label">Services</span>
+      <strong class="summary-value" id="service-count">—</strong>
+      <span class="summary-detail" id="image-count">— images</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Containers</span>
+      <strong class="summary-value" id="container-count">—</strong>
+      <span class="summary-detail">excluding Overseer</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Running</span>
+      <strong class="summary-value status-running" id="running-count">—</strong>
+      <span class="summary-detail" id="health-count">— healthy</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Restarting</span>
+      <strong class="summary-value status-warning" id="restarting-count">—</strong>
+      <span class="summary-detail">containers</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Stopped</span>
+      <strong class="summary-value status-stopped" id="stopped-count">—</strong>
+      <span class="summary-detail" id="unhealthy-count">— unhealthy</span>
+    </div>
+  </section>
+
+  <section class="resource-grid" aria-label="Project resource usage">
+    <div class="resource-panel">
+      <div class="resource-heading">
+        <h2>CPU usage</h2>
+        <span class="resource-value" id="cpu-value">—</span>
+      </div>
+      <div class="meter" role="meter" aria-label="Aggregate CPU usage" aria-valuemin="0" aria-valuemax="100" id="cpu-meter">
+        <div class="meter-fill" id="cpu-fill"></div>
+      </div>
+      <div class="meter-caption">Aggregate usage across running project containers</div>
+    </div>
+
+    <div class="resource-panel">
+      <div class="resource-heading">
+        <h2>Memory usage</h2>
+        <span class="resource-value" id="memory-value">—</span>
+      </div>
+      <div class="meter" role="meter" aria-label="Aggregate memory usage" aria-valuemin="0" aria-valuemax="100" id="memory-meter">
+        <div class="meter-fill memory-fill" id="memory-fill"></div>
+      </div>
+      <div class="meter-caption" id="memory-caption">Across running project containers</div>
+    </div>
+  </section>
+
+  <section class="services-panel" aria-labelledby="service-metrics-title">
+    <div class="services-header">
+      <h2 id="service-metrics-title">Resource usage by service</h2>
+      <a href="{{ url_for('service_controls') }}">Open service controls →</a>
+    </div>
+    <div class="service-metrics" id="service-metrics"></div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined) return "Unavailable";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+    const unitIndex = Math.min(
+      Math.floor(Math.log(bytes) / Math.log(1024)),
+      units.length - 1
+    );
+    return `${(bytes / (1024 ** unitIndex)).toFixed(unitIndex > 1 ? 1 : 0)} ${units[unitIndex]}`;
+  }
+
+  function setText(id, value) {
+    document.getElementById(id).textContent = value;
+  }
+
+  function setMeter(id, fillId, percent) {
+    const normalized = Math.max(0, Number(percent) || 0);
+    const meter = document.getElementById(id);
+    meter.setAttribute("aria-valuenow", normalized.toFixed(2));
+    document.getElementById(fillId).style.width = `${Math.min(normalized, 100)}%`;
+  }
+
+  function renderServiceMetrics(services) {
+    const container = document.getElementById("service-metrics");
+    if (services.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No services found in this project";
+      container.replaceChildren(empty);
+      return;
+    }
+
+    const rows = services.map(service => {
+      const row = document.createElement("div");
+      row.className = "service-row";
+
+      const identity = document.createElement("div");
+      const name = document.createElement("div");
+      name.className = "service-name";
+      name.textContent = service.name;
+      const state = document.createElement("div");
+      state.className = "service-state";
+      state.textContent = `${service.running}/${service.containers} running`;
+      identity.append(name, state);
+
+      const cpu = document.createElement("div");
+      const cpuLabel = document.createElement("span");
+      cpuLabel.className = "metric-label";
+      cpuLabel.textContent = "CPU";
+      const cpuValue = document.createElement("strong");
+      cpuValue.className = "metric-value";
+      cpuValue.textContent = service.metrics_available
+        ? `${service.cpu_percent.toFixed(2)}%`
+        : "Unavailable";
+      cpu.append(cpuLabel, cpuValue);
+
+      const memory = document.createElement("div");
+      memory.className = "service-memory";
+      const memoryLabel = document.createElement("span");
+      memoryLabel.className = "metric-label";
+      memoryLabel.textContent = "Memory";
+      const memoryValue = document.createElement("strong");
+      memoryValue.className = "metric-value";
+      memoryValue.textContent = service.metrics_available
+        ? `${formatBytes(service.memory_usage)} / ${formatBytes(service.memory_limit)}`
+        : "Unavailable";
+      const meter = document.createElement("div");
+      meter.className = "meter";
+      const fill = document.createElement("div");
+      fill.className = "meter-fill memory-fill";
+      fill.style.width = `${Math.min(service.memory_percent || 0, 100)}%`;
+      meter.appendChild(fill);
+      memory.append(memoryLabel, memoryValue, meter);
+
+      row.append(identity, cpu, memory);
+      return row;
+    });
+    container.replaceChildren(...rows);
+  }
+
+  function renderDashboard(data) {
+    const project = data.project;
+    const resources = data.resources;
+    setText("project-name", project.name);
+    setText(
+      "project-scope",
+      project.compose_scoped
+        ? "Docker Compose project overview"
+        : "All containers visible to the Docker daemon"
+    );
+    setText("service-count", project.services);
+    setText("image-count", `${project.images} image${project.images === 1 ? "" : "s"}`);
+    setText("container-count", project.containers);
+    setText("running-count", project.running);
+    setText("restarting-count", project.restarting);
+    setText("stopped-count", project.stopped);
+    setText("health-count", `${project.healthy} healthy`);
+    setText("unhealthy-count", `${project.unhealthy} unhealthy`);
+    if (resources.metrics_available) {
+      setText("cpu-value", `${resources.cpu_percent.toFixed(2)}%`);
+      setText("memory-value", formatBytes(resources.memory_usage));
+      setText(
+        "memory-caption",
+        `${formatBytes(resources.memory_usage)} of ${formatBytes(resources.memory_limit)} across running containers`
+      );
+    } else {
+      setText("cpu-value", "Unavailable");
+      setText("memory-value", "Unavailable");
+      setText("memory-caption", "No running container metrics are available");
+    }
+    setText("updated-at", `Updated ${new Date(data.updated_at).toLocaleTimeString()}`);
+    setMeter("cpu-meter", "cpu-fill", resources.cpu_percent);
+    setMeter("memory-meter", "memory-fill", resources.memory_percent);
+    renderServiceMetrics(data.services);
+  }
+
+  let loadInProgress = false;
+
+  async function load() {
+    if (loadInProgress) return;
+    loadInProgress = true;
+    try {
+      const data = await window.Overseer.requestJson("/api/dashboard");
+      renderDashboard(data);
+      window.Overseer.clearError();
+    } catch (error) {
+      window.Overseer.showError(error.message);
+    } finally {
+      loadInProgress = false;
+    }
+  }
+
+  async function poll() {
+    await load();
+    window.setTimeout(poll, 10000);
+  }
+
+  poll();
+</script>
+{% endblock %}

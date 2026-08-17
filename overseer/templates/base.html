@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Overseer Dashboard{% endblock %}</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 14px 20px;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .brand {
+      color: #e5e7eb;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    nav { display: flex; gap: 6px; }
+
+    nav a {
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: #9ca3af;
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    nav a:hover,
+    nav a:focus-visible {
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+
+    nav a.active { background: #2563eb; color: #fff; }
+
+    main { padding: 20px; }
+
+    h1,
+    h2,
+    p { margin-top: 0; }
+
+    h1,
+    h2 { font-size: 16px; font-weight: 600; }
+
+    .message {
+      display: none;
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      border: 1px solid #7f1d1d;
+      border-radius: 6px;
+      background: #450a0a;
+      color: #fecaca;
+      font-size: 13px;
+    }
+
+    footer {
+      margin-top: 20px;
+      padding: 14px;
+      border-top: 1px solid #1f2937;
+      color: #6b7280;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    footer a { color: #60a5fa; text-decoration: none; }
+
+    @media (max-width: 640px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px 12px;
+      }
+
+      nav { width: 100%; }
+      nav a { flex: 1; text-align: center; }
+      main { padding: 12px; }
+    }
+
+    {% block styles %}{% endblock %}
+  </style>
+</head>
+
+<body>
+  <header>
+    <a class="brand" href="{{ url_for('index') }}">🧠 Overseer Dashboard</a>
+    <nav aria-label="Dashboard navigation">
+      <a
+        href="{{ url_for('index') }}"
+        {% if request.endpoint == 'index' %}class="active" aria-current="page"{% endif %}
+      >Overview</a>
+      <a
+        href="{{ url_for('dependencies') }}"
+        {% if request.endpoint == 'dependencies' %}class="active" aria-current="page"{% endif %}
+      >Dependencies</a>
+      <a
+        href="{{ url_for('service_controls') }}"
+        {% if request.endpoint == 'service_controls' %}class="active" aria-current="page"{% endif %}
+      >Service controls</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="message" id="message" role="alert"></div>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    © 2026 PyKhaled. All rights reserved.
+    <br>
+    Built for internal infrastructure management •
+    <a href="mailto:ahmedaka@icloud.com">Contact</a>
+  </footer>
+
+  <script>
+    function showError(message) {
+      const element = document.getElementById("message");
+      element.textContent = message;
+      element.style.display = "block";
+    }
+
+    function clearError() {
+      const element = document.getElementById("message");
+      element.textContent = "";
+      element.style.display = "none";
+    }
+
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, options);
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        if (response.ok) {
+          throw new Error("The server returned an invalid response");
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Request failed (${response.status})`);
+      }
+
+      return payload;
+    }
+
+    function serviceAnchor(serviceName) {
+      const normalized = String(serviceName || "service")
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return `service-${normalized || "unknown"}`;
+    }
+
+    window.Overseer = {
+      clearError,
+      requestJson,
+      serviceAnchor,
+      showError
+    };
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

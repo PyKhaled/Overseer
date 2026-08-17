@@ -21,11 +21,37 @@ def make_container():
                 "443/tcp": None,
             }
         },
-        "Config": {"Image": "example/web:latest"},
+        "Config": {
+            "Image": "example/web:latest",
+            "Labels": {
+                "com.docker.compose.service": "web",
+                "com.docker.compose.depends_on": (
+                    "database:service_healthy:true,"
+                    "redis:service_started:false"
+                ),
+            },
+        },
         "Image": "sha256:abcdef",
         "State": {
             "StartedAt": "2026-08-10T10:00:00Z",
             "FinishedAt": "0001-01-01T00:00:00Z",
+            "Health": {"Status": "healthy"},
+        },
+    }
+    container.stats.return_value = {
+        "cpu_stats": {
+            "cpu_usage": {"total_usage": 300, "percpu_usage": [150, 150]},
+            "system_cpu_usage": 2000,
+            "online_cpus": 2,
+        },
+        "precpu_stats": {
+            "cpu_usage": {"total_usage": 100},
+            "system_cpu_usage": 1000,
+        },
+        "memory_stats": {
+            "usage": 120 * 1024 * 1024,
+            "limit": 1024 * 1024 * 1024,
+            "stats": {"inactive_file": 20 * 1024 * 1024},
         },
     }
     return container
@@ -57,6 +83,78 @@ class HelperTests(unittest.TestCase):
             },
         )
 
+    def test_get_compose_dependencies_ignores_conditions_and_duplicates(self):
+        container = make_container()
+        container.attrs["Config"]["Labels"][
+            app_module.COMPOSE_DEPENDS_ON_LABEL
+        ] = (
+            "database:service_healthy:true,"
+            "database:service_started:false,"
+            "redis:service_started:false"
+        )
+
+        self.assertEqual(
+            app_module.get_compose_dependencies(container),
+            ["database", "redis"],
+        )
+
+    def test_inspect_container_metrics_calculates_cpu_and_memory(self):
+        metrics = app_module.inspect_container_metrics(make_container())
+
+        self.assertEqual(metrics["cpu_percent"], 40.0)
+        self.assertEqual(metrics["memory_usage"], 100 * 1024 * 1024)
+        self.assertEqual(metrics["memory_limit"], 1024 * 1024 * 1024)
+        self.assertEqual(metrics["memory_percent"], 9.77)
+
+    def test_inspect_container_metrics_skips_stopped_container(self):
+        container = make_container()
+        container.status = "exited"
+
+        metrics = app_module.inspect_container_metrics(container)
+
+        self.assertIsNone(metrics["cpu_percent"])
+        self.assertIsNone(metrics["memory_usage"])
+        container.stats.assert_not_called()
+
+    def test_inspect_container_metrics_tolerates_docker_failure(self):
+        container = make_container()
+        container.stats.side_effect = app_module.docker.errors.APIError(
+            "stats unavailable"
+        )
+
+        metrics = app_module.inspect_container_metrics(container)
+
+        self.assertIsNone(metrics["cpu_percent"])
+        self.assertIsNone(metrics["memory_usage"])
+
+    def test_build_project_dashboard_aggregates_project_metadata(self):
+        container = make_container()
+
+        with patch.object(
+            app_module,
+            "list_project_containers",
+            return_value=[container],
+        ):
+            with patch.object(
+                app_module,
+                "get_compose_project",
+                return_value="example-project",
+            ):
+                dashboard = app_module.build_project_dashboard(MagicMock())
+
+        self.assertEqual(dashboard["project"]["name"], "example-project")
+        self.assertEqual(dashboard["project"]["services"], 1)
+        self.assertEqual(dashboard["project"]["containers"], 1)
+        self.assertEqual(dashboard["project"]["running"], 1)
+        self.assertEqual(dashboard["project"]["healthy"], 1)
+        self.assertEqual(dashboard["resources"]["cpu_percent"], 40.0)
+        self.assertTrue(dashboard["resources"]["metrics_available"])
+        self.assertEqual(
+            dashboard["resources"]["memory_usage"],
+            100 * 1024 * 1024,
+        )
+        self.assertEqual(dashboard["services"][0]["name"], "web")
+
     def test_inspect_container_serializes_container_details(self):
         container = make_container()
 
@@ -65,6 +163,8 @@ class HelperTests(unittest.TestCase):
         container.reload.assert_not_called()
         self.assertEqual(result["id"], "1234567890ab")
         self.assertEqual(result["name"], "web")
+        self.assertEqual(result["service"], "web")
+        self.assertEqual(result["dependencies"], ["database", "redis"])
         self.assertEqual(result["status"], "running")
         self.assertEqual(result["image"], "example/web:latest")
         self.assertEqual(result["started_at"], "2026-08-10T10:00:00+00:00")
@@ -72,7 +172,7 @@ class HelperTests(unittest.TestCase):
 
     def test_inspect_container_uses_image_id_when_original_name_is_missing(self):
         container = make_container()
-        container.attrs["Config"] = {}
+        container.attrs["Config"]["Image"] = ""
 
         result = app_module.inspect_container(container)
 
@@ -183,8 +283,30 @@ class RouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Overseer", response.data)
+        self.assertIn(b"Project overview", response.data)
+        self.assertIn(b"CPU usage", response.data)
+        self.assertIn(b"Memory usage", response.data)
+        self.assertIn(b'href="/dependencies"', response.data)
+        self.assertIn(b'href="/services"', response.data)
         self.assertEqual(response.headers["Cache-Control"], "no-store")
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+
+    def test_dependencies_renders_graph(self):
+        response = self.client.get("/dependencies")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Service dependencies", response.data)
+        self.assertIn(b"Docker Compose service dependency graph", response.data)
+        self.assertIn(b'aria-current="page"', response.data)
+
+    def test_service_controls_renders_dashboard(self):
+        response = self.client.get("/services")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Service controls", response.data)
+        self.assertIn(b'href="/"', response.data)
+        self.assertIn(b'aria-current="page"', response.data)
+        self.assertNotIn(b"Docker Compose service dependency graph", response.data)
 
     @patch.object(app_module, "get_client")
     def test_services_returns_inspected_containers(self, get_client):
@@ -200,6 +322,10 @@ class RouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()[0]["id"], "1234567890ab")
+        self.assertEqual(
+            response.get_json()[0]["dependencies"],
+            ["database", "redis"],
+        )
         get_client.return_value.containers.list.assert_called_once_with(
             all=True,
             ignore_removed=True,
@@ -207,6 +333,26 @@ class RouteTests(unittest.TestCase):
                 "label": "com.docker.compose.project=example-project",
             },
         )
+
+    @patch.object(app_module, "get_client")
+    @patch.object(app_module, "build_project_dashboard")
+    def test_dashboard_returns_project_metrics(
+        self,
+        build_project_dashboard,
+        get_client,
+    ):
+        build_project_dashboard.return_value = {
+            "project": {"name": "example-project"},
+            "resources": {"cpu_percent": 12.5},
+            "services": [],
+            "updated_at": "2026-08-18T00:00:00+00:00",
+        }
+
+        response = self.client.get("/api/dashboard")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["project"]["name"], "example-project")
+        build_project_dashboard.assert_called_once_with(get_client.return_value)
 
     @patch.object(app_module, "get_client")
     def test_service_lifecycle_endpoints(self, get_client):

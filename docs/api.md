@@ -6,7 +6,47 @@ The API has no built-in authentication. Run it only inside a trusted Compose pro
 
 ### `GET /`
 
-Returns the HTML dashboard.
+Returns the project overview with CPU, memory, and Compose metadata.
+
+### `GET /dependencies`
+
+Returns the service dependency graph page.
+
+### `GET /services`
+
+Returns the service inspection and lifecycle-controls page.
+
+## Project Metrics
+
+### `GET /api/dashboard`
+
+Returns project metadata, aggregate CPU and memory usage, and resource usage grouped by Compose service. CPU and memory values come from one-shot Docker stats for running containers; stopped containers do not contribute resource metrics.
+
+```json
+{
+  "project": {
+    "name": "example-project",
+    "compose_scoped": true,
+    "services": 3,
+    "containers": 3,
+    "images": 3,
+    "running": 2,
+    "restarting": 0,
+    "stopped": 1,
+    "healthy": 2,
+    "unhealthy": 0
+  },
+  "resources": {
+    "metrics_available": true,
+    "cpu_percent": 4.25,
+    "memory_usage": 157286400,
+    "memory_limit": 2147483648,
+    "memory_percent": 7.32
+  },
+  "services": [],
+  "updated_at": "2026-08-18T00:00:00+00:00"
+}
+```
 
 ## List Containers
 
@@ -19,6 +59,8 @@ Returns containers in Overseer's Docker Compose project, excluding the Overseer 
   {
     "id": "1234567890ab",
     "name": "web",
+    "service": "web",
+    "dependencies": ["database", "redis"],
     "status": "running",
     "image": "example/web:latest",
     "ports": {
@@ -33,6 +75,8 @@ Returns containers in Overseer's Docker Compose project, excluding the Overseer 
 ```
 
 Exposed but unpublished ports have a `null` value.
+
+`service` comes from the `com.docker.compose.service` label. `dependencies` contains service names parsed from Compose's declared `depends_on` metadata. Overseer does not infer dependencies from shared networks or observed traffic.
 
 ## Container Actions
 
