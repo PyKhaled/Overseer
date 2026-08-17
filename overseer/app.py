@@ -117,7 +117,7 @@ def inspect_container(container):
 
 
 def create_app(config=None):
-    application = Flask(__name__, template_folder="../templates")
+    application = Flask(__name__, template_folder="templates")
     application.config.from_mapping(
         OVERSEER_USERNAME=os.getenv("OVERSEER_USERNAME"),
         OVERSEER_PASSWORD=os.getenv("OVERSEER_PASSWORD"),
