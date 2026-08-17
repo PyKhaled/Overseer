@@ -1,10 +1,19 @@
+import base64
 import importlib
+import runpy
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 
 app_module = importlib.import_module("overseer.app")
+
+
+def basic_auth_headers(username="admin", password="secret"):
+    credentials = base64.b64encode(
+        f"{username}:{password}".encode("utf-8")
+    ).decode("ascii")
+    return {"Authorization": f"Basic {credentials}"}
 
 
 def make_container():
@@ -20,33 +29,40 @@ def make_container():
                 "443/tcp": None,
             }
         },
-        "State": {"StartedAt": "2026-08-10T10:00:00Z"},
+        "Config": {"Image": "example/web:latest"},
+        "Image": "sha256:abcdef",
+        "State": {
+            "StartedAt": "2026-08-10T10:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+        },
     }
     return container
 
 
 class HelperTests(unittest.TestCase):
+    def test_directory_entry_point_imports_without_package_context(self):
+        namespace = runpy.run_path("overseer/__main__.py")
+
+        self.assertIs(namespace["app"], app_module.app)
+
+    def test_directory_entry_point_uses_secure_server_defaults(self):
+        with patch.dict(app_module.os.environ, {}, clear=True):
+            with patch.object(app_module.app, "run") as run:
+                runpy.run_path("overseer/__main__.py", run_name="__main__")
+
+        run.assert_called_once_with(
+            debug=False,
+            host="127.0.0.1",
+            port=8000,
+        )
+
     def test_get_ports_formats_published_and_exposed_ports(self):
         self.assertEqual(
             app_module.get_ports(make_container()),
-            {"80/tcp": ["0.0.0.0:8080"], "443/tcp": None},
-        )
-
-    def test_format_ports_as_links_uses_localhost_for_wildcard_address(self):
-        ports = {
-            "80/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8080"}],
-            "443/tcp": None,
-        }
-
-        self.assertEqual(
-            app_module.format_ports_as_links(ports),
-            [
-                {
-                    "container_port": "80/tcp",
-                    "url": "http://localhost:8080",
-                    "html": '<a href="http://localhost:8080" target="_blank">8080</a>',
-                }
-            ],
+            {
+                "80/tcp": [{"host_ip": "0.0.0.0", "host_port": "8080"}],
+                "443/tcp": None,
+            },
         )
 
     def test_inspect_container_serializes_container_details(self):
@@ -54,7 +70,7 @@ class HelperTests(unittest.TestCase):
 
         result = app_module.inspect_container(container)
 
-        container.reload.assert_called_once_with()
+        container.reload.assert_not_called()
         self.assertEqual(result["id"], "1234567890ab")
         self.assertEqual(result["name"], "web")
         self.assertEqual(result["status"], "running")
@@ -62,42 +78,214 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(result["started_at"], "2026-08-10T10:00:00+00:00")
         self.assertIn("uptime", result)
 
+    def test_inspect_container_uses_image_id_when_original_name_is_missing(self):
+        container = make_container()
+        container.attrs["Config"] = {}
+
+        result = app_module.inspect_container(container)
+
+        self.assertEqual(result["image"], "sha256:abcdef")
+
+    def test_stopped_container_uptime_ends_at_finished_time(self):
+        container = make_container()
+        container.status = "exited"
+        container.attrs["State"]["FinishedAt"] = "2026-08-10T11:30:00Z"
+
+        self.assertEqual(app_module.get_uptime(container), "1:30:00")
+
+    def test_get_compose_project_uses_configured_project(self):
+        with patch.dict(
+            app_module.os.environ,
+            {"OVERSEER_COMPOSE_PROJECT": "example-project"},
+        ):
+            project = app_module.get_compose_project(MagicMock())
+
+        self.assertEqual(project, "example-project")
+
+    def test_get_compose_project_detects_own_container_label(self):
+        client = MagicMock()
+        client.containers.get.return_value.labels = {
+            app_module.COMPOSE_PROJECT_LABEL: "detected-project",
+        }
+
+        with patch.dict(app_module.os.environ, {}, clear=True):
+            with patch.object(
+                app_module.socket,
+                "gethostname",
+                return_value="overseer-container",
+            ):
+                project = app_module.get_compose_project(client)
+
+        self.assertEqual(project, "detected-project")
+        client.containers.get.assert_called_once_with("overseer-container")
+
+    def test_list_project_containers_falls_back_to_all_containers(self):
+        client = MagicMock()
+
+        with patch.object(app_module, "get_compose_project", return_value=None):
+            app_module.list_project_containers(client)
+
+        client.containers.list.assert_called_once_with(
+            all=True,
+            ignore_removed=True,
+        )
+
 
 class RouteTests(unittest.TestCase):
     def setUp(self):
-        application = app_module.create_app()
-        application.config.update(TESTING=True)
+        application = app_module.create_app(
+            {
+                "TESTING": True,
+                "OVERSEER_USERNAME": "admin",
+                "OVERSEER_PASSWORD": "secret",
+            }
+        )
         self.client = application.test_client()
+        self.auth_headers = basic_auth_headers()
+        self.action_headers = {
+            **self.auth_headers,
+            app_module.CSRF_HEADER: app_module.CSRF_HEADER_VALUE,
+        }
+
+    def test_unconfigured_authentication_fails_closed(self):
+        application = app_module.create_app(
+            {
+                "TESTING": True,
+                "OVERSEER_USERNAME": None,
+                "OVERSEER_PASSWORD": None,
+            }
+        )
+
+        response = application.test_client().get("/")
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("not configured", response.get_json()["error"])
+
+    def test_invalid_credentials_are_rejected(self):
+        response = self.client.get(
+            "/api/services",
+            headers=basic_auth_headers(password="wrong"),
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.get_json(), {"error": "Authentication required"})
+        self.assertIn("Basic", response.headers["WWW-Authenticate"])
+
+    @patch.object(app_module, "get_client")
+    def test_lifecycle_action_requires_csrf_header(self, get_client):
+        response = self.client.post(
+            "/api/service/container-1/start",
+            headers=self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.get_json(), {"error": "CSRF validation failed"})
+        get_client.assert_not_called()
 
     def test_index_renders_dashboard(self):
-        response = self.client.get("/")
+        response = self.client.get("/", headers=self.auth_headers)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Overseer", response.data)
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
 
     @patch.object(app_module, "get_client")
     def test_services_returns_inspected_containers(self, get_client):
         container = make_container()
         get_client.return_value.containers.list.return_value = [container]
 
-        response = self.client.get("/api/services")
+        with patch.object(
+            app_module,
+            "get_compose_project",
+            return_value="example-project",
+        ):
+            response = self.client.get(
+                "/api/services",
+                headers=self.auth_headers,
+            )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()[0]["id"], "1234567890ab")
-        get_client.return_value.containers.list.assert_called_once_with(all=True)
+        get_client.return_value.containers.list.assert_called_once_with(
+            all=True,
+            ignore_removed=True,
+            filters={
+                "label": "com.docker.compose.project=example-project",
+            },
+        )
 
     @patch.object(app_module, "get_client")
     def test_service_lifecycle_endpoints(self, get_client):
         container = get_client.return_value.containers.get.return_value
 
-        for action in ("start", "stop", "restart"):
-            with self.subTest(action=action):
-                response = self.client.post(f"/api/service/container-1/{action}")
+        with patch.object(app_module, "get_compose_project", return_value=None):
+            for action in ("start", "stop", "restart"):
+                with self.subTest(action=action):
+                    response = self.client.post(
+                        f"/api/service/container-1/{action}",
+                        headers=self.action_headers,
+                    )
 
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.get_json(), {"success": True})
-                getattr(container, action).assert_called_once_with()
-                get_client.return_value.containers.get.assert_called_with("container-1")
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.get_json(), {"success": True})
+                    getattr(container, action).assert_called_once_with()
+                    get_client.return_value.containers.get.assert_called_with(
+                        "container-1"
+                    )
+
+    @patch.object(app_module, "get_client")
+    def test_lifecycle_action_rejects_container_from_another_project(
+        self,
+        get_client,
+    ):
+        container = get_client.return_value.containers.get.return_value
+        container.labels = {
+            app_module.COMPOSE_PROJECT_LABEL: "another-project",
+        }
+
+        with patch.object(
+            app_module,
+            "get_compose_project",
+            return_value="overseer-project",
+        ):
+            response = self.client.post(
+                "/api/service/container-1/stop",
+                headers=self.action_headers,
+            )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.get_json(), {"error": "Container not found"})
+        container.stop.assert_not_called()
+
+    @patch.object(app_module, "get_client")
+    def test_missing_container_returns_json_error(self, get_client):
+        get_client.return_value.containers.get.side_effect = (
+            app_module.docker.errors.NotFound("missing")
+        )
+
+        response = self.client.post(
+            "/api/service/missing/start",
+            headers=self.action_headers,
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.get_json(), {"error": "Container not found"})
+
+    @patch.object(app_module, "get_client")
+    def test_docker_failure_returns_json_error(self, get_client):
+        get_client.return_value.containers.list.side_effect = (
+            app_module.docker.errors.APIError("daemon unavailable")
+        )
+
+        with patch.object(app_module, "get_compose_project", return_value=None):
+            response = self.client.get(
+                "/api/services",
+                headers=self.auth_headers,
+            )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.get_json(), {"error": "Docker operation failed"})
 
 
 if __name__ == "__main__":

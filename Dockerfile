@@ -10,7 +10,8 @@ COPY requirements.txt /opt/overseer/requirements.txt
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r /opt/overseer/requirements.txt
 
-COPY . /opt/overseer/
+COPY overseer /opt/overseer/overseer
+COPY templates /opt/overseer/templates
 
 EXPOSE 8000
 

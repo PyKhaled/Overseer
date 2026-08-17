@@ -15,10 +15,12 @@ The app needs access to a Docker daemon. `docker.from_env()` honors standard Doc
 ## Run Locally
 
 ```bash
+export OVERSEER_USERNAME=admin
+export OVERSEER_PASSWORD='replace-with-a-strong-password'
 python -m overseer
 ```
 
-Open `http://localhost:8000`. This entry point enables Flask debug mode and is intended only for development.
+Open `http://localhost:8000`. The development server binds to `127.0.0.1` with debug mode disabled by default. Set `OVERSEER_DEBUG=1` or `OVERSEER_HOST` only when you explicitly need different local-development behavior.
 
 To exercise the production server locally:
 
@@ -42,4 +44,4 @@ Before opening a pull request, run the tests and verify the image builds:
 docker build -t overseer .
 ```
 
-GitHub Actions repeats these checks on pushes to `main` and `release`, on pull requests, and when manually dispatched. The test job covers Python 3.11, 3.12, and 3.13; a separate job builds the production image.
+GitHub Actions repeats these checks on pushes to `main`, `release/**`, and semantic-version tags, on pull requests, and when manually dispatched. The test job covers Python 3.11, 3.12, and 3.13; a separate job builds the production image. The package-publishing workflow also runs tests before pushing an image.

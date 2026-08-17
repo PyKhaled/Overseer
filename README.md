@@ -47,8 +47,11 @@ Add Overseer to your existing `docker-compose.yml`.
 ```yaml
 services:
   overseer:
-    image: pykhaled/overseer:latest
+    image: ghcr.io/pykhaled/overseer:latest
     restart: unless-stopped
+    environment:
+      OVERSEER_USERNAME: ${OVERSEER_USERNAME:?Set OVERSEER_USERNAME}
+      OVERSEER_PASSWORD: ${OVERSEER_PASSWORD:?Set OVERSEER_PASSWORD}
     ports:
       - "8000:8000"
     volumes:
@@ -58,6 +61,8 @@ services:
 Start your stack:
 
 ```bash
+export OVERSEER_USERNAME=admin
+export OVERSEER_PASSWORD='replace-with-a-strong-password'
 docker compose up -d
 ```
 
@@ -67,6 +72,8 @@ Open:
 http://localhost:8000
 ```
 
+Sign in with the username and password exported before starting Compose.
+
 ---
 
 ## Example
@@ -74,7 +81,10 @@ http://localhost:8000
 ```yaml
 services:
   overseer:
-    image: pykhaled/overseer:latest
+    image: ghcr.io/pykhaled/overseer:latest
+    environment:
+      OVERSEER_USERNAME: ${OVERSEER_USERNAME:?Set OVERSEER_USERNAME}
+      OVERSEER_PASSWORD: ${OVERSEER_PASSWORD:?Set OVERSEER_PASSWORD}
 
   frontend:
     image: my-frontend
@@ -121,6 +131,8 @@ pip install -r requirements.txt
 Run the Flask development server at `http://localhost:8000`:
 
 ```bash
+export OVERSEER_USERNAME=admin
+export OVERSEER_PASSWORD='replace-with-a-strong-password'
 python -m overseer
 ```
 
@@ -141,6 +153,8 @@ Build and run the container image:
 ```bash
 docker build -t overseer .
 docker run --rm -p 8000:8000 \
+  -e OVERSEER_USERNAME=admin \
+  -e OVERSEER_PASSWORD='replace-with-a-strong-password' \
   -v /var/run/docker.sock:/var/run/docker.sock \
   overseer
 ```
@@ -160,7 +174,7 @@ Planned features include:
 - Docker events stream
 - Project metadata
 - Multi-host support
-- User authentication
+- Role-based authorization
 - Alerting and notifications
 
 ---
@@ -175,7 +189,7 @@ Overseer requires access to the Docker socket:
 
 This allows Overseer to inspect and manage Docker containers on the host.
 
-Deploy Overseer only in trusted environments.
+Overseer requires HTTP Basic credentials through `OVERSEER_USERNAME` and `OVERSEER_PASSWORD` and rejects lifecycle actions without its CSRF header. Basic authentication must be protected with HTTPS when traffic leaves the local machine. Deploy Overseer only in trusted environments.
 
 ---
 

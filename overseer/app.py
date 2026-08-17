@@ -1,7 +1,15 @@
+import hmac
+import os
+import socket
 from datetime import datetime, timezone
 
 import docker
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
+
+
+COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
+CSRF_HEADER = "X-Overseer-CSRF"
+CSRF_HEADER_VALUE = "1"
 
 
 def get_client():
@@ -9,65 +17,169 @@ def get_client():
 
 
 def get_ports(container):
-    ports = container.attrs["NetworkSettings"]["Ports"] or {}
+    ports = container.attrs.get("NetworkSettings", {}).get("Ports") or {}
     result = {}
     for container_port, mappings in ports.items():
         if mappings:
             result[container_port] = [
-                f"{mapping['HostIp']}:{mapping['HostPort']}" for mapping in mappings
+                {
+                    "host_ip": mapping.get("HostIp", ""),
+                    "host_port": mapping.get("HostPort", ""),
+                }
+                for mapping in mappings
             ]
         else:
             result[container_port] = None
     return result
 
 
-def format_ports_as_links(ports):
-    links = []
-    for container_port, mappings in ports.items():
-        if not mappings:
-            continue
-        for mapping in mappings:
-            host = mapping["HostIp"]
-            port = mapping["HostPort"]
-            url_host = "localhost" if host in ("0.0.0.0", "::") else host
-            url = f"http://{url_host}:{port}"
-            links.append(
-                {
-                    "container_port": container_port,
-                    "url": url,
-                    "html": f'<a href="{url}" target="_blank">{port}</a>',
-                }
-            )
-    return links
+def parse_docker_datetime(value):
+    if not value or value.startswith("0001-01-01"):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def get_started_at(container):
-    started_at = container.attrs["State"]["StartedAt"]
-    return datetime.fromisoformat(started_at.replace("Z", "+00:00")).isoformat()
+    started_at = parse_docker_datetime(
+        container.attrs.get("State", {}).get("StartedAt")
+    )
+    return started_at.isoformat() if started_at else None
 
 
 def get_uptime(container):
-    started = datetime.fromisoformat(
-        container.attrs["State"]["StartedAt"].replace("Z", "+00:00")
+    state = container.attrs.get("State", {})
+    started = parse_docker_datetime(state.get("StartedAt"))
+    if not started:
+        return None
+
+    finished = parse_docker_datetime(state.get("FinishedAt"))
+    end = (
+        finished
+        if finished and finished >= started
+        else datetime.now(timezone.utc)
     )
-    return str(datetime.now(timezone.utc) - started)
+    return str(end - started)
+
+
+def get_compose_project(client):
+    configured_project = os.getenv("OVERSEER_COMPOSE_PROJECT")
+    if configured_project:
+        return configured_project
+
+    container_identifier = os.getenv("HOSTNAME") or socket.gethostname()
+    try:
+        overseer_container = client.containers.get(container_identifier)
+    except docker.errors.NotFound:
+        return None
+
+    return (overseer_container.labels or {}).get(COMPOSE_PROJECT_LABEL)
+
+
+def list_project_containers(client):
+    project = get_compose_project(client)
+    filters = (
+        {"label": f"{COMPOSE_PROJECT_LABEL}={project}"}
+        if project
+        else None
+    )
+    list_options = {"all": True, "ignore_removed": True}
+    if filters:
+        list_options["filters"] = filters
+    return client.containers.list(**list_options)
+
+
+def get_project_container(client, container_id):
+    container = client.containers.get(container_id)
+    project = get_compose_project(client)
+    container_project = (container.labels or {}).get(COMPOSE_PROJECT_LABEL)
+    if project and container_project != project:
+        raise docker.errors.NotFound("Container not found in Overseer project")
+    return container
 
 
 def inspect_container(container):
-    container.reload()
+    image = container.attrs.get("Config", {}).get("Image")
+    if not image:
+        image = container.attrs.get("Image", "unknown")
+
     return {
         "id": container.id[:12],
         "name": container.name,
         "status": container.status,
-        "image": container.image.tags[0],
+        "image": image,
         "ports": get_ports(container),
         "started_at": get_started_at(container),
         "uptime": get_uptime(container),
     }
 
 
-def create_app():
+def create_app(config=None):
     application = Flask(__name__, template_folder="../templates")
+    application.config.from_mapping(
+        OVERSEER_USERNAME=os.getenv("OVERSEER_USERNAME"),
+        OVERSEER_PASSWORD=os.getenv("OVERSEER_PASSWORD"),
+    )
+    if config:
+        application.config.update(config)
+
+    @application.before_request
+    def protect_application():
+        expected_username = application.config.get("OVERSEER_USERNAME")
+        expected_password = application.config.get("OVERSEER_PASSWORD")
+        if not expected_username or not expected_password:
+            return jsonify(
+                {
+                    "error": (
+                        "Overseer authentication is not configured; set "
+                        "OVERSEER_USERNAME and OVERSEER_PASSWORD"
+                    )
+                }
+            ), 503
+
+        authorization = request.authorization
+        supplied_username = authorization.username if authorization else ""
+        supplied_password = authorization.password if authorization else ""
+        authenticated = hmac.compare_digest(
+            (supplied_username or "").encode("utf-8"),
+            expected_username.encode("utf-8"),
+        ) and hmac.compare_digest(
+            (supplied_password or "").encode("utf-8"),
+            expected_password.encode("utf-8"),
+        )
+        if not authenticated:
+            response = jsonify({"error": "Authentication required"})
+            response.status_code = 401
+            response.headers["WWW-Authenticate"] = (
+                'Basic realm="Overseer", charset="UTF-8"'
+            )
+            return response
+
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            supplied_csrf_header = request.headers.get(CSRF_HEADER, "")
+            if not hmac.compare_digest(
+                supplied_csrf_header,
+                CSRF_HEADER_VALUE,
+            ):
+                return jsonify({"error": "CSRF validation failed"}), 403
+
+    @application.after_request
+    def add_security_headers(response):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "base-uri 'none'; "
+            "frame-ancestors 'none'; "
+            "form-action 'none'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'"
+        )
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        return response
 
     @application.route("/")
     def index():
@@ -75,23 +187,36 @@ def create_app():
 
     @application.route("/api/services")
     def services():
-        containers = get_client().containers.list(all=True)
+        containers = list_project_containers(get_client())
         return jsonify([inspect_container(container) for container in containers])
 
     @application.route("/api/service/<container_id>/restart", methods=["POST"])
     def restart_service(container_id):
-        get_client().containers.get(container_id).restart()
+        client = get_client()
+        get_project_container(client, container_id).restart()
         return {"success": True}
 
     @application.route("/api/service/<container_id>/stop", methods=["POST"])
     def stop_service(container_id):
-        get_client().containers.get(container_id).stop()
+        client = get_client()
+        get_project_container(client, container_id).stop()
         return {"success": True}
 
     @application.route("/api/service/<container_id>/start", methods=["POST"])
     def start_service(container_id):
-        get_client().containers.get(container_id).start()
+        client = get_client()
+        get_project_container(client, container_id).start()
         return {"success": True}
+
+    @application.errorhandler(docker.errors.NotFound)
+    def handle_container_not_found(error):
+        application.logger.warning("Docker resource not found: %s", error)
+        return jsonify({"error": "Container not found"}), 404
+
+    @application.errorhandler(docker.errors.DockerException)
+    def handle_docker_error(error):
+        application.logger.error("Docker operation failed: %s", error)
+        return jsonify({"error": "Docker operation failed"}), 502
 
     return application
 
