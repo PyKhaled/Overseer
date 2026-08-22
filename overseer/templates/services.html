@@ -1,12 +1,56 @@
 {% extends "base.html" %}
 
-{% block title %}Service Controls · Overseer{% endblock %}
+{% block title %}Container Controls · Overseer{% endblock %}
 
 {% block styles %}
-    .page-header { margin-bottom: 16px; }
-    .page-header p { margin-bottom: 0; color: #9ca3af; font-size: 12px; }
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
 
-    .container {
+    .page-header p,
+    .refresh-status { margin-bottom: 0; color: var(--text-muted); font-size: 13px; }
+    .refresh-status { white-space: nowrap; }
+    .refresh-status.stale { color: #fca5a5; }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(170px, auto) auto;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 14px;
+      border: 1px solid var(--panel-muted);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .field { display: grid; gap: 5px; }
+    .field label { color: var(--text-muted); font-size: 12px; font-weight: 650; }
+
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    .result-count {
+      min-height: 40px;
+      padding: 9px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .container-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
       gap: 16px;
@@ -14,85 +58,152 @@
 
     .card {
       padding: 16px;
-      border: 1px solid #1f2937;
+      border: 1px solid var(--panel-muted);
       border-radius: 12px;
-      background: #111827;
+      background: var(--panel);
       scroll-margin-top: 20px;
     }
 
-    .card:focus { outline: 2px solid #60a5fa; outline-offset: 3px; }
+    .card[aria-busy="true"] { border-color: var(--focus); }
+    .card:focus { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+    .card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-heading h2 {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: 17px;
+    }
 
     .status {
-      margin-left: 8px;
-      padding: 3px 8px;
+      flex: 0 0 auto;
+      padding: 4px 9px;
       border-radius: 999px;
-      color: #fff;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 650;
       text-transform: capitalize;
     }
 
-    .green { background: #16a34a; }
-    .red { background: #dc2626; }
-    .yellow { background: #ca8a04; }
-    .gray { background: #374151; }
+    .green { background: #86efac; color: #052e16; }
+    .red { background: #fca5a5; color: #450a0a; }
+    .yellow { background: #fde047; color: #422006; }
+    .gray { background: #cbd5e1; color: #1e293b; }
 
     .meta {
-      margin-top: 8px;
-      color: #9ca3af;
-      font-size: 12px;
+      display: grid;
+      gap: 4px;
+      margin-top: 12px;
+      color: var(--text-muted);
+      font-size: 13px;
       line-height: 1.5;
+      overflow-wrap: anywhere;
     }
 
+    .meta-label { color: var(--text-subtle); font-weight: 650; }
+
+    .ports { margin-top: 3px; }
+    .ports-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+
     .ports a {
-      display: inline-block;
-      margin: 4px 6px 0 0;
-      padding: 4px 8px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 6px 9px;
       border-radius: 6px;
-      background: #1f2937;
-      color: #60a5fa;
-      font-size: 12px;
+      background: var(--panel-muted);
+      color: #93c5fd;
+      font-size: 13px;
       text-decoration: none;
     }
 
-    .ports a:hover { background: #374151; }
-    .protocol { margin-left: 4px; color: #9ca3af; font-size: 10px; }
+    .ports a:hover,
+    .ports a:focus-visible { background: #334155; }
+    .protocol { margin-left: 5px; color: var(--text-muted); font-size: 11px; }
+    .ports-empty { color: var(--text-subtle); }
 
-    button {
-      margin-top: 10px;
-      margin-right: 5px;
-      padding: 6px 10px;
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .actions button {
+      min-height: 38px;
+      padding: 7px 12px;
       border: none;
       border-radius: 6px;
       color: #fff;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 13px;
+      font-weight: 650;
     }
 
-    .start { background: #16a34a; }
-    .stop { background: #dc2626; }
-    .restart { background: #2563eb; }
-    button:disabled { cursor: wait; opacity: 0.65; }
+    .start { background: #15803d; }
+    .stop { background: #b91c1c; }
+    .restart { background: #1d4ed8; }
+    .actions button:disabled { cursor: not-allowed; opacity: 0.48; }
+    .actions button[data-pending="true"]:disabled { cursor: wait; opacity: 0.8; }
 
     .empty {
-      padding: 36px;
-      border: 1px solid #1f2937;
+      grid-column: 1 / -1;
+      padding: 36px 20px;
+      border: 1px solid var(--border);
       border-radius: 12px;
-      color: #9ca3af;
+      background: var(--panel);
+      color: var(--text-muted);
+      font-size: 14px;
       text-align: center;
     }
 
-    @media (max-width: 640px) {
-      .container { grid-template-columns: 1fr; }
+    .empty strong { display: block; margin-bottom: 6px; color: var(--text); font-size: 17px; }
+
+    @media (max-width: 720px) {
+      .page-header { display: block; }
+      .refresh-status { margin-top: 8px; white-space: normal; }
+      .toolbar { grid-template-columns: 1fr; }
+      .container-grid { grid-template-columns: 1fr; }
+      .result-count { min-height: 0; padding: 0; }
     }
 {% endblock %}
 
 {% block content %}
   <section aria-labelledby="services-title">
     <div class="page-header">
-      <h1 id="services-title">Service controls</h1>
-      <p>Inspect containers and start, stop, or restart services in this Compose project.</p>
+      <div>
+        <h1 id="services-title">Container controls</h1>
+        <p>Inspect and manage individual containers in this Compose project.</p>
+      </div>
+      <div class="refresh-status" id="refresh-status">Waiting for containers…</div>
     </div>
-    <div class="container" id="grid"></div>
+
+    <div class="toolbar" aria-label="Container filters">
+      <div class="field">
+        <label for="service-search">Search containers</label>
+        <input id="service-search" type="search" placeholder="Service, container, image, or ID">
+      </div>
+      <div class="field">
+        <label for="status-filter">Status</label>
+        <select id="status-filter">
+          <option value="">All statuses</option>
+          <option value="running">Running</option>
+          <option value="restarting">Restarting</option>
+          <option value="exited">Exited</option>
+          <option value="paused">Paused</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="result-count" id="result-count" aria-live="polite">Loading…</div>
+    </div>
+
+    <div class="container-grid" id="grid" aria-busy="true">
+      <div class="empty" role="status">Loading containers…</div>
+    </div>
   </section>
 {% endblock %}
 
@@ -101,8 +212,8 @@
   function statusClass(status) {
     const normalized = (status || "").toLowerCase();
     if (normalized === "running") return "green";
-    if (normalized === "exited") return "red";
-    if (normalized === "restarting") return "yellow";
+    if (normalized === "exited" || normalized === "dead") return "red";
+    if (normalized === "restarting" || normalized === "paused") return "yellow";
     return "gray";
   }
 
@@ -112,59 +223,98 @@
       ? window.location.hostname
       : host;
     const urlHost = resolvedHost.includes(":") ? `[${resolvedHost}]` : resolvedHost;
-    return `${protocol}://${urlHost}:${port}`;
+    return {
+      href: `${protocol}://${urlHost}:${port}`,
+      label: `${urlHost}:${port}`
+    };
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "Not available";
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.valueOf())
+      ? value
+      : parsed.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
   }
 
   function addTextRow(parent, label, value) {
     const row = document.createElement("div");
-    row.textContent = `${label}: ${value ?? "Unavailable"}`;
+    const labelElement = document.createElement("span");
+    labelElement.className = "meta-label";
+    labelElement.textContent = `${label}: `;
+    row.append(labelElement, document.createTextNode(value ?? "Not available"));
     parent.appendChild(row);
   }
 
   function renderPorts(parent, ports) {
+    const list = document.createElement("div");
+    list.className = "ports-list";
     const seen = new Set();
-    let rendered = false;
 
     Object.entries(ports || {}).forEach(([containerPort, mappings]) => {
       if (!Array.isArray(mappings)) return;
 
       mappings.forEach(mapping => {
-        const host = mapping?.host_ip;
-        const port = mapping?.host_port;
         const exposedPort = containerPort.split("/")[0];
         const protocol = exposedPort === "443" || exposedPort === "8443"
           ? "https"
           : "http";
-        const url = buildUrl(protocol, host, port);
-        if (!url || seen.has(url)) return;
+        const destination = buildUrl(protocol, mapping?.host_ip, mapping?.host_port);
+        if (!destination || seen.has(destination.href)) return;
 
-        seen.add(url);
-        rendered = true;
-
+        seen.add(destination.href);
         const link = document.createElement("a");
-        link.href = url;
+        link.href = destination.href;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        link.append(document.createTextNode(containerPort));
+        link.title = `Container port ${containerPort} opens at ${destination.href}`;
+        link.setAttribute("aria-label", `Open ${destination.label} in a new tab`);
+        link.append(document.createTextNode(destination.label));
 
         const protocolLabel = document.createElement("span");
         protocolLabel.className = "protocol";
-        protocolLabel.textContent = `(${protocol.toUpperCase()})`;
+        protocolLabel.textContent = protocol.toUpperCase();
         link.appendChild(protocolLabel);
-        parent.appendChild(link);
+        list.appendChild(link);
       });
     });
 
-    if (!rendered) {
+    if (seen.size === 0) {
       const empty = document.createElement("span");
-      empty.style.color = "#6b7280";
+      empty.className = "ports-empty";
       empty.textContent = "No ports published";
-      parent.appendChild(empty);
+      list.appendChild(empty);
     }
+    parent.appendChild(list);
   }
 
-  async function action(type, id, button) {
-    button.disabled = true;
+  function isActionAvailable(type, status) {
+    const normalized = (status || "").toLowerCase();
+    const active = ["running", "restarting", "paused"].includes(normalized);
+    if (type === "start") return !active;
+    return active;
+  }
+
+  async function action(type, id, button, containerName) {
+    if (["stop", "restart"].includes(type)) {
+      const confirmed = window.confirm(
+        `${type === "stop" ? "Stop" : "Restart"} ${containerName}? This may interrupt dependent services.`
+      );
+      if (!confirmed) return;
+    }
+
+    const card = button.closest(".card");
+    const buttons = [...card.querySelectorAll("button")];
+    const originalLabel = button.textContent;
+    card.setAttribute("aria-busy", "true");
+    buttons.forEach(item => { item.disabled = true; });
+    button.dataset.pending = "true";
+    button.textContent = {
+      start: "Starting…",
+      restart: "Restarting…",
+      stop: "Stopping…"
+    }[type];
+
     try {
       await window.Overseer.requestJson(
         `/api/service/${encodeURIComponent(id)}/${type}`,
@@ -173,26 +323,35 @@
           headers: { "X-Overseer-CSRF": "1" }
         }
       );
-      window.Overseer.clearError();
       await load();
+      window.Overseer.showSuccess(`${containerName} ${type} request completed.`);
     } catch (error) {
-      window.Overseer.showError(error.message);
+      window.Overseer.showError(error.message, load);
     } finally {
-      button.disabled = false;
+      card.removeAttribute("aria-busy");
+      button.removeAttribute("data-pending");
+      button.textContent = originalLabel;
     }
   }
 
-  function createActionButton(type, id) {
+  function createActionButton(type, service) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = type;
+    button.dataset.action = type;
     button.textContent = type[0].toUpperCase() + type.slice(1);
-    button.addEventListener("click", () => action(type, id, button));
+    button.disabled = !isActionAvailable(type, service.status);
+    if (button.disabled) {
+      button.title = `${button.textContent} is unavailable while the container is ${service.status || "unknown"}.`;
+    }
+    button.addEventListener("click", () => {
+      action(type, service.id, button, service.name || service.id);
+    });
     return button;
   }
 
   function renderService(service, usedAnchors) {
-    const card = document.createElement("div");
+    const card = document.createElement("article");
     const serviceName = service.service || service.name || service.id;
     const baseAnchor = window.Overseer.serviceAnchor(serviceName);
     const anchor = usedAnchors.has(baseAnchor)
@@ -203,10 +362,12 @@
     card.className = "card";
     card.id = anchor;
     card.tabIndex = -1;
+    card.dataset.containerId = service.id;
     card.dataset.service = serviceName;
 
     const heading = document.createElement("div");
-    const name = document.createElement("b");
+    heading.className = "card-heading";
+    const name = document.createElement("h2");
     name.textContent = service.name || "Unnamed container";
     heading.appendChild(name);
 
@@ -219,8 +380,9 @@
     const metadata = document.createElement("div");
     metadata.className = "meta";
     addTextRow(metadata, "Service", service.service);
-    addTextRow(metadata, "Container", service.id);
+    addTextRow(metadata, "Container ID", service.id);
     addTextRow(metadata, "Image", service.image);
+    addTextRow(metadata, "Health", (service.health || "not-configured").replace("-", " "));
     addTextRow(
       metadata,
       "Depends on",
@@ -229,56 +391,151 @@
 
     const ports = document.createElement("div");
     ports.className = "ports";
-    const portsLabel = document.createElement("b");
-    portsLabel.textContent = "Ports:";
+    const portsLabel = document.createElement("span");
+    portsLabel.className = "meta-label";
+    portsLabel.textContent = "Published ports";
     ports.appendChild(portsLabel);
-    ports.appendChild(document.createElement("br"));
     renderPorts(ports, service.ports);
     metadata.appendChild(ports);
 
-    addTextRow(metadata, "Started", service.started_at);
+    addTextRow(metadata, "Started", formatDateTime(service.started_at));
     addTextRow(metadata, "Uptime", service.uptime);
     card.appendChild(metadata);
 
-    ["restart", "stop", "start"].forEach(type => {
-      card.appendChild(createActionButton(type, service.id));
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    actions.setAttribute("aria-label", `Actions for ${service.name || service.id}`);
+    ["start", "restart", "stop"].forEach(type => {
+      actions.appendChild(createActionButton(type, service));
     });
+    card.appendChild(actions);
     return card;
   }
 
+  function matchesStatus(service, filter) {
+    if (!filter) return true;
+    const status = (service.status || "").toLowerCase();
+    const known = ["running", "restarting", "exited", "paused"];
+    return filter === "other" ? !known.includes(status) : status === filter;
+  }
+
+  function filteredServices() {
+    const query = document.getElementById("service-search").value.trim().toLowerCase();
+    const status = document.getElementById("status-filter").value;
+    return latestServices
+      .filter(service => matchesStatus(service, status))
+      .filter(service => {
+        if (!query) return true;
+        return [service.service, service.name, service.image, service.id]
+          .filter(Boolean)
+          .some(value => String(value).toLowerCase().includes(query));
+      })
+      .sort((left, right) => {
+        const leftName = left.service || left.name || left.id;
+        const rightName = right.service || right.name || right.id;
+        return leftName.localeCompare(rightName);
+      });
+  }
+
+  function captureGridFocus() {
+    const active = document.activeElement;
+    const card = active?.closest?.(".card");
+    if (!card) return null;
+    return {
+      containerId: card.dataset.containerId,
+      action: active.dataset?.action || null,
+      card: active === card
+    };
+  }
+
+  function restoreGridFocus(previousFocus) {
+    if (!previousFocus) return;
+    const card = [...document.querySelectorAll(".card")]
+      .find(item => item.dataset.containerId === previousFocus.containerId);
+    if (!card) return;
+    const target = previousFocus.action
+      ? card.querySelector(`[data-action="${previousFocus.action}"]`)
+      : card;
+    (target?.disabled ? card : target)?.focus({ preventScroll: true });
+  }
+
+  function renderServices() {
+    const services = filteredServices();
+    const grid = document.getElementById("grid");
+    const previousFocus = captureGridFocus();
+    const resultCount = document.getElementById("result-count");
+    resultCount.textContent = `${services.length} of ${latestServices.length} container${latestServices.length === 1 ? "" : "s"}`;
+
+    if (services.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      const title = document.createElement("strong");
+      title.textContent = latestServices.length === 0
+        ? "No containers found"
+        : "No containers match these filters";
+      const description = document.createElement("span");
+      description.textContent = latestServices.length === 0
+        ? "Check the Docker socket mount and Compose project configuration. Overseer will keep retrying automatically."
+        : "Try a different search term or status.";
+      empty.append(title, description);
+      grid.replaceChildren(empty);
+    } else {
+      const usedAnchors = new Set();
+      grid.replaceChildren(...services.map(service => renderService(service, usedAnchors)));
+    }
+
+    grid.setAttribute("aria-busy", "false");
+    restoreGridFocus(previousFocus);
+    if (!initialHashFocusHandled) {
+      initialHashFocusHandled = focusRequestedService();
+    }
+  }
+
   function focusRequestedService() {
-    if (!window.location.hash) return;
+    if (!window.location.hash) return true;
     const targetId = decodeURIComponent(window.location.hash.slice(1));
     const target = document.getElementById(targetId);
-    if (!target) return;
+    if (!target) return false;
     target.scrollIntoView({ block: "center" });
     target.focus({ preventScroll: true });
+    return true;
   }
 
   let loadInProgress = false;
+  let latestServices = [];
+  let hasLoadedServices = false;
+  let initialHashFocusHandled = false;
 
   async function load() {
     if (loadInProgress) return;
     loadInProgress = true;
-
     try {
-      const services = await window.Overseer.requestJson("/api/services");
-      const grid = document.getElementById("grid");
-      if (services.length === 0) {
+      latestServices = await window.Overseer.requestJson("/api/services");
+      renderServices();
+      hasLoadedServices = true;
+      const refreshed = document.getElementById("refresh-status");
+      refreshed.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      refreshed.classList.remove("stale");
+      window.Overseer.clearMessage();
+    } catch (error) {
+      const refreshed = document.getElementById("refresh-status");
+      if (!hasLoadedServices) {
+        refreshed.textContent = "Container data unavailable";
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "No services found in this Compose project";
-        grid.replaceChildren(empty);
-      } else {
-        const usedAnchors = new Set();
-        grid.replaceChildren(
-          ...services.map(service => renderService(service, usedAnchors))
-        );
-        focusRequestedService();
+        const title = document.createElement("strong");
+        title.textContent = "Container data is unavailable";
+        const description = document.createElement("span");
+        description.textContent = "Retry the request or check the Docker connection.";
+        empty.append(title, description);
+        document.getElementById("grid").replaceChildren(empty);
+        document.getElementById("result-count").textContent = "Unavailable";
+      } else if (!refreshed.classList.contains("stale")) {
+        refreshed.textContent = `Refresh failed • ${refreshed.textContent}`;
       }
-      window.Overseer.clearError();
-    } catch (error) {
-      window.Overseer.showError(error.message);
+      refreshed.classList.add("stale");
+      document.getElementById("grid").setAttribute("aria-busy", "false");
+      window.Overseer.showError(error.message, load);
     } finally {
       loadInProgress = false;
     }
@@ -286,10 +543,14 @@
 
   async function poll() {
     await load();
-    window.setTimeout(poll, 5000);
+    window.setTimeout(poll, document.hidden ? 30000 : 5000);
   }
 
-  window.addEventListener("hashchange", focusRequestedService);
+  document.getElementById("service-search").addEventListener("input", renderServices);
+  document.getElementById("status-filter").addEventListener("change", renderServices);
+  window.addEventListener("hashchange", () => {
+    initialHashFocusHandled = focusRequestedService();
+  });
   poll();
 </script>
 {% endblock %}

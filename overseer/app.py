@@ -185,6 +185,7 @@ def get_project_container(client, container_id):
 def inspect_container(container):
     config = container.attrs.get("Config", {})
     labels = config.get("Labels") or {}
+    health = container.attrs.get("State", {}).get("Health", {}).get("Status")
     image = config.get("Image")
     if not image:
         image = container.attrs.get("Image", "unknown")
@@ -195,6 +196,7 @@ def inspect_container(container):
         "service": labels.get(COMPOSE_SERVICE_LABEL, container.name),
         "dependencies": get_compose_dependencies(container),
         "status": container.status,
+        "health": health or "not-configured",
         "image": image,
         "ports": get_ports(container),
         "started_at": get_started_at(container),
@@ -282,6 +284,7 @@ def build_project_dashboard(client):
             "stopped": container_count - running - restarting,
             "healthy": healthy,
             "unhealthy": unhealthy,
+            "health_unreported": container_count - healthy - unhealthy,
         },
         "resources": {
             "metrics_available": metrics_available,

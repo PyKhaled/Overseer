@@ -9,27 +9,48 @@
   <style>
     * { box-sizing: border-box; }
 
+    :root {
+      color-scheme: dark;
+      --background: #0f172a;
+      --panel: #111827;
+      --panel-muted: #1f2937;
+      --border: #475569;
+      --text: #e5e7eb;
+      --text-muted: #9ca3af;
+      --text-subtle: #94a3b8;
+      --focus: #60a5fa;
+    }
+
     body {
+      display: flex;
+      flex-direction: column;
       min-height: 100vh;
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.5;
     }
 
     header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--panel-muted);
+    }
+
+    .header-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
       padding: 14px 20px;
-      background: #111827;
-      border-bottom: 1px solid #1f2937;
     }
 
     .brand {
-      color: #e5e7eb;
-      font-weight: 600;
+      color: var(--text);
+      font-weight: 650;
       text-decoration: none;
       white-space: nowrap;
     }
@@ -37,63 +58,122 @@
     nav { display: flex; gap: 6px; }
 
     nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
       padding: 8px 12px;
       border-radius: 6px;
-      color: #9ca3af;
-      font-size: 13px;
+      color: var(--text-muted);
+      font-size: 14px;
       text-decoration: none;
     }
 
     nav a:hover,
     nav a:focus-visible {
-      background: #1f2937;
-      color: #e5e7eb;
+      background: var(--panel-muted);
+      color: var(--text);
     }
 
     nav a.active { background: #2563eb; color: #fff; }
 
-    main { padding: 20px; }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
 
     h1,
     h2,
     p { margin-top: 0; }
 
     h1,
-    h2 { font-size: 16px; font-weight: 600; }
+    h2 { font-weight: 650; line-height: 1.25; }
+
+    h1 { margin-bottom: 6px; font-size: 24px; }
+    h2 { font-size: 18px; }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    button,
+    input,
+    select { font: inherit; }
 
     .message {
       display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       margin-bottom: 16px;
-      padding: 10px 12px;
-      border: 1px solid #7f1d1d;
-      border-radius: 6px;
+      padding: 12px 14px;
+      border: 1px solid;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .message.error {
+      border-color: #b91c1c;
       background: #450a0a;
       color: #fecaca;
-      font-size: 13px;
+    }
+
+    .message.success {
+      border-color: #15803d;
+      background: #052e16;
+      color: #bbf7d0;
+    }
+
+    .message button {
+      min-height: 36px;
+      padding: 6px 12px;
+      border: 1px solid currentColor;
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
     }
 
     footer {
       margin-top: 20px;
       padding: 14px;
-      border-top: 1px solid #1f2937;
-      color: #6b7280;
-      font-size: 11px;
+      border-top: 1px solid var(--panel-muted);
+      color: var(--text-subtle);
+      font-size: 13px;
       text-align: center;
     }
 
     footer a { color: #60a5fa; text-decoration: none; }
 
     @media (max-width: 640px) {
-      header {
+      .header-inner {
         align-items: flex-start;
         flex-direction: column;
         gap: 10px;
         padding: 14px 12px;
       }
 
-      nav { width: 100%; }
-      nav a { flex: 1; text-align: center; }
-      main { padding: 12px; }
+      nav {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      nav a {
+        flex: 0 0 auto;
+        min-height: 44px;
+        text-align: center;
+      }
+
+      main { padding: 18px 12px; }
+      .message { align-items: stretch; flex-direction: column; }
     }
 
     {% block styles %}{% endblock %}
@@ -102,25 +182,27 @@
 
 <body>
   <header>
-    <a class="brand" href="{{ url_for('index') }}">🧠 Overseer Dashboard</a>
-    <nav aria-label="Dashboard navigation">
-      <a
-        href="{{ url_for('index') }}"
-        {% if request.endpoint == 'index' %}class="active" aria-current="page"{% endif %}
-      >Overview</a>
-      <a
-        href="{{ url_for('dependencies') }}"
-        {% if request.endpoint == 'dependencies' %}class="active" aria-current="page"{% endif %}
-      >Dependencies</a>
-      <a
-        href="{{ url_for('service_controls') }}"
-        {% if request.endpoint == 'service_controls' %}class="active" aria-current="page"{% endif %}
-      >Service controls</a>
-    </nav>
+    <div class="header-inner">
+      <a class="brand" href="{{ url_for('index') }}">🧠 Overseer</a>
+      <nav aria-label="Dashboard navigation">
+        <a
+          href="{{ url_for('index') }}"
+          {% if request.endpoint == 'index' %}class="active" aria-current="page"{% endif %}
+        >Overview</a>
+        <a
+          href="{{ url_for('dependencies') }}"
+          {% if request.endpoint == 'dependencies' %}class="active" aria-current="page"{% endif %}
+        >Dependencies</a>
+        <a
+          href="{{ url_for('service_controls') }}"
+          {% if request.endpoint == 'service_controls' %}class="active" aria-current="page"{% endif %}
+        >Containers</a>
+      </nav>
+    </div>
   </header>
 
   <main>
-    <div class="message" id="message" role="alert"></div>
+    <div class="message" id="message" aria-atomic="true"></div>
     {% block content %}{% endblock %}
   </main>
 
@@ -132,16 +214,42 @@
   </footer>
 
   <script>
-    function showError(message) {
+    let retryAction = null;
+
+    function showMessage(message, type = "error", retry = null) {
       const element = document.getElementById("message");
-      element.textContent = message;
-      element.style.display = "block";
+      const text = document.createElement("span");
+      text.textContent = message;
+      element.replaceChildren(text);
+      element.className = `message ${type}`;
+      element.setAttribute("role", type === "error" ? "alert" : "status");
+      element.style.display = "flex";
+      retryAction = retry;
+
+      if (retry) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "Retry";
+        button.addEventListener("click", () => retryAction?.());
+        element.appendChild(button);
+      }
     }
 
-    function clearError() {
+    function showError(message, retry = null) {
+      showMessage(message, "error", retry);
+    }
+
+    function showSuccess(message) {
+      showMessage(message, "success");
+    }
+
+    function clearMessage() {
       const element = document.getElementById("message");
-      element.textContent = "";
+      element.replaceChildren();
+      element.className = "message";
+      element.removeAttribute("role");
       element.style.display = "none";
+      retryAction = null;
     }
 
     async function requestJson(url, options = {}) {
@@ -171,10 +279,12 @@
     }
 
     window.Overseer = {
-      clearError,
+      clearError: clearMessage,
+      clearMessage,
       requestJson,
       serviceAnchor,
-      showError
+      showError,
+      showSuccess
     };
   </script>
   {% block scripts %}{% endblock %}
