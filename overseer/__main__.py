@@ -16,5 +16,5 @@ if __name__ == "__main__":
     app.run(
         debug=os.getenv("OVERSEER_DEBUG") == "1",
         host=os.getenv("OVERSEER_HOST", "127.0.0.1"),
-        port=int(os.getenv("OVERSEER_PORT", "8000")),
+        port=int(os.getenv("OVERSEER_PORT", "8765")),
     )

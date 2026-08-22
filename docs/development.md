@@ -27,7 +27,7 @@ The app needs access to a Docker daemon. `docker.from_env()` honors standard Doc
 make run
 ```
 
-Open `http://localhost:8000`. The development server binds to `127.0.0.1` with debug mode disabled by default. Set `OVERSEER_DEBUG=1` or `OVERSEER_HOST` only when you explicitly need different local-development behavior.
+Open `http://localhost:8765`. The development server binds to `127.0.0.1` with debug mode disabled by default. Set `OVERSEER_DEBUG=1` or `OVERSEER_HOST` only when you explicitly need different local-development behavior.
 
 To exercise the production server locally:
 
@@ -96,7 +96,7 @@ Run `make help` for the current command list. The main targets are:
 | `clean` | Remove generated caches and coverage output; it preserves `.venv`. |
 
 `IMAGE`, `SMOKE_CONTAINER`, and `SMOKE_PORT` can override the container defaults.
-For example, use `make smoke SMOKE_PORT=8088` when port 8000 is occupied.
+For example, use `make smoke SMOKE_PORT=8088` when port 8765 is occupied.
 
 GitHub Actions runs quality checks, dependency auditing, tests on Python
 3.11–3.14, a container vulnerability scan, and a live container smoke test on

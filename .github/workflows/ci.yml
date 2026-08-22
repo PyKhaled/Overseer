@@ -139,16 +139,16 @@ jobs:
         run: |
           docker run --detach \
             --name overseer-smoke \
-            --publish 127.0.0.1:8000:8000 \
+            --publish 127.0.0.1:8765:8765 \
             --volume /var/run/docker.sock:/var/run/docker.sock \
             overseer:ci
 
       - name: Smoke test container
         run: |
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:8000/healthz; then
-              curl --fail --silent http://127.0.0.1:8000/
-              curl --fail --silent http://127.0.0.1:8000/api/services
+            if curl --fail --silent http://127.0.0.1:8765/healthz; then
+              curl --fail --silent http://127.0.0.1:8765/
+              curl --fail --silent http://127.0.0.1:8765/api/services
               exit 0
             fi
             sleep 1
