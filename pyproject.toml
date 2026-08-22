@@ -4,8 +4,12 @@ runtime = [
     "docker==7.2.0",
     "gunicorn==26.1.0",
 ]
+docs = [
+    "mkdocs-material==9.7.7",
+]
 dev = [
     { include-group = "runtime" },
+    { include-group = "docs" },
     "coverage[toml]==7.15.4",
     "pip-audit==2.10.1",
     "ruff==0.16.4",

@@ -58,6 +58,26 @@ make image
 make smoke
 ```
 
+## Documentation Website
+
+The Markdown files in `docs/` are the source of truth for the documentation
+website. Preview them locally at `http://127.0.0.1:8001`:
+
+```bash
+make docs-serve
+```
+
+Build the same static site checked by GitHub Actions:
+
+```bash
+make docs-build
+```
+
+The build runs in strict mode, so warnings such as broken internal links fail
+the command. Merges to `main` publish the generated `site/` directory to the
+orphan `gh-pages` branch. Do not edit that branch manually; make documentation
+changes in `docs/` instead.
+
 ## Command Reference
 
 Run `make help` for the current command list. The main targets are:
@@ -66,6 +86,7 @@ Run `make help` for the current command list. The main targets are:
 | --- | --- |
 | `setup` | Create `.venv` and install the development dependency group. |
 | `run` / `serve` | Start the Flask development server or Gunicorn. |
+| `docs-serve` / `docs-build` | Preview or strictly build the documentation site. |
 | `test` / `coverage` | Run unit tests, optionally enforcing coverage. |
 | `lint` / `format-check` | Run the non-mutating source checks. |
 | `format` | Apply Ruff's safe lint fixes and formatter. |

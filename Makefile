@@ -9,8 +9,8 @@ IMAGE ?= overseer:local
 SMOKE_CONTAINER ?= overseer-smoke
 SMOKE_PORT ?= 8000
 
-.PHONY: help setup check-env run serve test coverage lint format-check format \
-	audit check image smoke clean
+.PHONY: help setup check-env run serve docs-serve docs-build test coverage lint \
+	format-check format audit check image smoke clean
 
 help: ## Show available development commands.
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -30,6 +30,12 @@ run: check-env ## Run the Flask development server.
 
 serve: check-env ## Run the application locally with Gunicorn.
 	$(VENV_PYTHON) -m gunicorn --bind 0.0.0.0:8000 --workers 2 overseer:app
+
+docs-serve: check-env ## Preview the documentation website at http://127.0.0.1:8001.
+	$(VENV_PYTHON) -m mkdocs serve --dev-addr 127.0.0.1:8001
+
+docs-build: check-env ## Build the documentation website and fail on warnings.
+	$(VENV_PYTHON) -m mkdocs build --strict
 
 test: check-env ## Run the unit test suite.
 	$(VENV_PYTHON) -m unittest discover -s tests -v
