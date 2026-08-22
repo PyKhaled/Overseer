@@ -15,12 +15,12 @@ services:
     image: ghcr.io/pykhaled/overseer:latest
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8765:8765"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-Start the project and open `http://localhost:8000`:
+Start the project and open `http://localhost:8765`:
 
 ```bash
 docker compose up -d

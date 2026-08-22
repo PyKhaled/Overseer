@@ -69,7 +69,7 @@ class HelperTests(unittest.TestCase):
         run.assert_called_once_with(
             debug=False,
             host="127.0.0.1",
-            port=8000,
+            port=8765,
         )
 
     def test_get_ports_formats_published_and_exposed_ports(self):

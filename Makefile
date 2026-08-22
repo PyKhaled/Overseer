@@ -7,7 +7,7 @@ VENV ?= .venv
 VENV_PYTHON := $(VENV)/bin/python
 IMAGE ?= overseer:local
 SMOKE_CONTAINER ?= overseer-smoke
-SMOKE_PORT ?= 8000
+SMOKE_PORT ?= 8765
 
 .PHONY: help setup check-env run serve docs-serve docs-build test coverage lint \
 	format-check format audit check image smoke clean
@@ -29,7 +29,7 @@ run: check-env ## Run the Flask development server.
 	$(VENV_PYTHON) -m overseer
 
 serve: check-env ## Run the application locally with Gunicorn.
-	$(VENV_PYTHON) -m gunicorn --bind 0.0.0.0:8000 --workers 2 overseer:app
+	$(VENV_PYTHON) -m gunicorn --bind 0.0.0.0:8765 --workers 2 overseer:app
 
 docs-serve: check-env ## Preview the documentation website at http://127.0.0.1:8001.
 	$(VENV_PYTHON) -m mkdocs serve --dev-addr 127.0.0.1:8001
@@ -69,7 +69,7 @@ smoke: image ## Build and smoke-test the production image.
 	cleanup; \
 	docker run --detach \
 		--name "$(SMOKE_CONTAINER)" \
-		--publish "127.0.0.1:$(SMOKE_PORT):8000" \
+		--publish "127.0.0.1:$(SMOKE_PORT):8765" \
 		--volume /var/run/docker.sock:/var/run/docker.sock \
 		"$(IMAGE)" >/dev/null; \
 	attempt=1; \

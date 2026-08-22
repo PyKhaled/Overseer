@@ -57,7 +57,7 @@ services:
     image: ghcr.io/pykhaled/overseer:latest
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8765:8765"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
@@ -71,7 +71,7 @@ docker compose up -d
 Open:
 
 ```text
-http://localhost:8000
+http://localhost:8765
 ```
 
 Use the dashboard navigation to switch between the project overview at `/`, dependency graph at `/dependencies`, and container controls at `/services`. Selecting a service in the graph opens its matching control card.
@@ -154,7 +154,7 @@ For a production-only environment, install the smaller runtime group instead:
 python -m pip install --group runtime
 ```
 
-Run the Flask development server at `http://localhost:8000`:
+Run the Flask development server at `http://localhost:8765`:
 
 ```bash
 make run

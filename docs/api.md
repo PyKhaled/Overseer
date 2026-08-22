@@ -102,7 +102,7 @@ X-Overseer-CSRF: 1
 ```bash
 curl --header "X-Overseer-CSRF: 1" \
   --request POST \
-  http://localhost:8000/api/service/container-id/restart
+  http://localhost:8765/api/service/container-id/restart
 ```
 
 On success, each returns:

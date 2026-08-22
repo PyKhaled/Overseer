@@ -6,12 +6,12 @@ Build and run the image from the repository root:
 
 ```bash
 docker build -t overseer .
-docker run --rm -p 8000:8000 \
+docker run --rm -p 8765:8765 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   overseer
 ```
 
-The image runs Gunicorn on port `8000` with two workers and exposes a Docker
+The image runs Gunicorn on port `8765` with two workers and exposes a Docker
 health check through `GET /healthz`. The Python base image and direct
 dependencies are pinned.
 
@@ -46,7 +46,7 @@ Access to `/var/run/docker.sock` is effectively administrative access to the Doc
 
 - Deploy Overseer only on trusted networks.
 - Put authentication and TLS at a trusted reverse proxy before allowing remote access.
-- Do not expose port `8000` directly to the public internet.
+- Do not expose Overseer's port directly to the public internet.
 - Avoid mounting the socket into unrelated containers.
 - Review changes to lifecycle routes as security-sensitive code.
 
