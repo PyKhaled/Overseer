@@ -288,8 +288,35 @@ class RouteTests(unittest.TestCase):
         self.assertIn(b"100% represents one fully utilized CPU core", response.data)
         self.assertIn(b'href="/dependencies"', response.data)
         self.assertIn(b'href="/services"', response.data)
+        self.assertIn(
+            b'href="/static/images/overseer-sentinel-icon.svg"',
+            response.data,
+        )
+        self.assertIn(
+            b'src="/static/images/overseer-sentinel-logo-dark.svg"',
+            response.data,
+        )
         self.assertEqual(response.headers["Cache-Control"], "no-store")
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+
+    def test_brand_assets_are_served(self):
+        assets = {
+            "/static/images/overseer-sentinel-icon.svg": "image/svg+xml",
+            "/static/images/overseer-sentinel-logo-dark.svg": "image/svg+xml",
+            "/static/images/overseer-sentinel-logo-light.svg": "image/svg+xml",
+            "/static/images/overseer-sentinel-icon-512.png": "image/png",
+            "/static/images/favicon-32.png": "image/png",
+            "/static/images/apple-touch-icon.png": "image/png",
+        }
+
+        for path, content_type in assets.items():
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                try:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.mimetype, content_type)
+                finally:
+                    response.close()
 
     def test_dependencies_renders_graph(self):
         response = self.client.get("/dependencies")
