@@ -60,6 +60,27 @@ Add `--prerelease` for a prerelease. If the release notes need manual editing,
 create and review a draft first by adding `--draft`, then publish it from the
 GitHub Releases page.
 
+### Publish from Visual Studio Code
+
+The repository also includes release tasks for Visual Studio Code:
+
+1. Open the command palette and select **Tasks: Run Task**.
+2. Run **Release: Generate notes** to preview the notes, then run
+   **Release: Preflight** to check the worktree, CI, and local quality gate.
+3. Select **Release: Submit GitHub release**, enter an unused semantic-version
+   tag, and choose **stable** or
+   **prerelease**. Prerelease tags must include a suffix such as `-rc.1`.
+4. Review the commit and release details in the terminal, then type `PUBLISH`
+   to confirm.
+5. Run **Release: Verify** to wait for the workflow and inspect the published
+   multi-platform image.
+
+The task checks GitHub CLI authentication, fetches `origin/main` and tags, and
+then runs the same `gh release create` flow shown above. It always targets the
+latest fetched `origin/main` commit, regardless of the locally checked-out
+branch. Install and authenticate the GitHub CLI with `gh auth login` before
+using it.
+
 ## What the Workflow Publishes
 
 The release workflow first validates the tag and confirms that its commit is

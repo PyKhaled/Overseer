@@ -98,6 +98,27 @@ Run `make help` for the current command list. The main targets are:
 `IMAGE`, `SMOKE_CONTAINER`, and `SMOKE_PORT` can override the container defaults.
 For example, use `make smoke SMOKE_PORT=8088` when port 8765 is occupied.
 
+## Visual Studio Code Tasks
+
+Open **Tasks: Run Task** from the command palette to run the repository's
+common workflows without entering commands manually. Tasks are provided for
+environment setup, the development server, formatting, tests, the complete
+quality gate, documentation preview, container builds, smoke tests, and safe
+cleanup. The default test task runs the unit tests, and the default build task
+builds the production image.
+
+The release tasks cover the complete release sequence:
+
+1. **Release: Generate notes** previews GitHub's generated notes.
+2. **Release: Preflight** requires a clean worktree, successful CI for the
+   current `origin/main`, an unused tag, and a passing local quality gate.
+3. **Release: Submit GitHub release** publishes after an explicit confirmation.
+4. **Release: Verify** waits for the release workflow and inspects the
+   multi-platform image in GHCR.
+
+Release tasks require an authenticated GitHub CLI. Image build, smoke-test,
+and release-verification tasks also require a running Docker installation.
+
 GitHub Actions runs quality checks, dependency auditing, tests on Python
 3.11–3.14, a container vulnerability scan, and a live container smoke test on
 pull requests and pushes to `main`. Published GitHub Releases rerun the same
