@@ -69,10 +69,9 @@ Run `make help` for the current command list. The main targets are:
 | `test` / `coverage` | Run unit tests, optionally enforcing coverage. |
 | `lint` / `format-check` | Run the non-mutating source checks. |
 | `format` | Apply Ruff's safe lint fixes and formatter. |
-| `audit` / `compose-check` | Check dependencies and Compose configuration. |
+| `audit` | Check dependencies for known vulnerabilities. |
 | `check` | Run the complete local quality gate used by CI. |
 | `image` / `smoke` | Build and verify the production container. |
-| `compose-up` / `compose-down` / `compose-logs` | Operate the example stack. |
 | `clean` | Remove generated caches and coverage output; it preserves `.venv`. |
 
 `IMAGE`, `SMOKE_CONTAINER`, and `SMOKE_PORT` can override the container defaults.
