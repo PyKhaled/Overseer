@@ -2,14 +2,21 @@
 
 ## Set Up
 
-Python 3.11 is used by the production image. Dependencies are defined in `pyproject.toml`. Create a virtual environment, ensure pip 25.1 or newer is installed, and install the development dependency group:
+Python 3.14 is used by the production image, and CI tests Python 3.11 through
+3.14. Dependencies are defined in `pyproject.toml`. Create a virtual
+environment with a supported Python version, ensure pip 25.1 or newer is
+installed, and install the development dependency group:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade "pip>=25.1"
 python -m pip install --group dev
+python -m pip uninstall --yes setuptools
 ```
+
+Setuptools is removed after installation because Overseer does not need it at
+runtime and the newest available release is affected by a known vulnerability.
 
 Use `python -m pip install --group runtime` when only the production dependencies are needed.
 

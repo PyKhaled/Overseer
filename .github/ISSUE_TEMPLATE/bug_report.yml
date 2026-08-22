@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible problem in Overseer
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Do not report security vulnerabilities here. Use the private security
+        reporting link shown on the issue chooser.
+  - type: input
+    id: version
+    attributes:
+      label: Overseer version
+      description: Provide an exact image tag or commit SHA.
+      placeholder: "2.0.0 or abc1234"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Docker, Compose, host OS, and browser versions.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest sequence that demonstrates the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Remove secrets, tokens, host paths, and private container data.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I removed secrets and private data from this report.
+          required: true
+        - label: I confirmed this is not a security vulnerability.
+          required: true

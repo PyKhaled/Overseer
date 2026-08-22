@@ -12,8 +12,10 @@ image to the GitHub Container Registry (GHCR).
 - The release commit has been merged into `main`.
 - The CI workflow is passing for that commit.
 - The tag is unused and follows `vMAJOR.MINOR.PATCH`, for example `v1.4.0`.
-  SemVer prerelease and build suffixes are also accepted, such as
-  `v1.4.0-rc.1`.
+  SemVer prerelease suffixes are also accepted, such as `v1.4.0-rc.1`.
+
+Build-metadata suffixes such as `+build.1` are not accepted because `+` cannot
+be represented faithfully in a Docker tag.
 
 The Git tag is the project's version; there is no separate version field to
 update in the Python package.

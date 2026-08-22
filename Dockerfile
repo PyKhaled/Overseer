@@ -9,6 +9,7 @@ COPY pyproject.toml /opt/overseer/pyproject.toml
 
 RUN python -m pip install --no-cache-dir --upgrade "pip==26.2.1"
 RUN python -m pip install --no-cache-dir --group runtime
+RUN python -m pip uninstall --yes setuptools
 
 COPY overseer/ /opt/overseer/overseer
 

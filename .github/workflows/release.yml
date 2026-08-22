@@ -16,8 +16,33 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          semver_pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?$'
+          if [[ ! "$RELEASE_TAG" =~ $semver_pattern ]]; then
+            echo "Release tag must be vMAJOR.MINOR.PATCH with an optional SemVer prerelease: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Require a commit from main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
   verify:
     name: Verify release
+    needs: validate
     uses: ./.github/workflows/ci.yml
 
   publish:
@@ -32,22 +57,8 @@ jobs:
       packages: write
 
     steps:
-      - name: Validate release tag
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Release tag must be valid semantic version prefixed with v: $RELEASE_TAG" >&2
-            exit 1
-          fi
-
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Require a commit from main
-        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
       - name: Normalize image name
         id: image
