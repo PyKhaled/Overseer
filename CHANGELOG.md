@@ -5,6 +5,8 @@ All notable changes to Overseer are documented here. Releases follow
 
 ## Unreleased
 
+## [2.0.0] - 2026-08-22
+
 ### Added
 
 - Project dashboard with aggregate CPU and memory usage.
@@ -41,6 +43,7 @@ This version was tagged but did not have a corresponding GitHub Release.
 - Packaged the Flask application.
 - Added initial project documentation, tests, and continuous integration.
 
+[2.0.0]: https://github.com/PyKhaled/Overseer/compare/v1.0.2...v2.0.0
 [1.0.2]: https://github.com/PyKhaled/Overseer/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/PyKhaled/Overseer/compare/v0.1.0...v1.0.1
 [0.1.0]: https://github.com/PyKhaled/Overseer/releases/tag/v0.1.0
