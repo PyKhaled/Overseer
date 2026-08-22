@@ -23,6 +23,9 @@ exact-version, major/minor, major, commit-SHA, and `latest` tags. Pre-releases
 never update `latest`. Published images include SBOM and provenance metadata
 and a GitHub artifact attestation.
 
+Maintainers should follow the [release runbook](releasing.md) when publishing a
+new version.
+
 ## Compose Project Detection
 
 When Overseer runs as part of a Compose application, it reads the `com.docker.compose.project` label from its own container and lists other containers with the same label. The Overseer container itself is excluded. Set `OVERSEER_COMPOSE_PROJECT` to override automatic detection:

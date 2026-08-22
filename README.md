@@ -181,7 +181,8 @@ docker run --rm -p 8000:8000 \
   overseer
 ```
 
-See the [`docs/`](docs/README.md) directory for architecture, API, development, and deployment details.
+See the [`docs/`](docs/README.md) directory for architecture, API, development,
+releasing, and deployment details.
 
 ---
 

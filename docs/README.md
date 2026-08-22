@@ -6,6 +6,8 @@ Overseer is a lightweight Flask dashboard for viewing and controlling containers
 
 - [Architecture](architecture.md) explains the package, request flow, and current design boundaries.
 - [Development](development.md) covers environment setup, running the app, and tests.
+- [Releasing](releasing.md) is the maintainer runbook for publishing a GitHub
+  Release and its GHCR image.
 - [HTTP API](api.md) documents dashboard and container-control endpoints.
 - [Deployment and Security](deployment.md) describes the production image and Docker socket risks.
 
