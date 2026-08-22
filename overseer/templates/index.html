@@ -4,9 +4,9 @@
 
 {% block styles %}
     .graph-panel {
-      border: 1px solid #1f2937;
+      border: 1px solid var(--panel-muted);
       border-radius: 12px;
-      background: #111827;
+      background: var(--panel);
       overflow: hidden;
     }
 
@@ -16,52 +16,87 @@
       justify-content: space-between;
       gap: 16px;
       padding: 16px;
-      border-bottom: 1px solid #1f2937;
+      border-bottom: 1px solid var(--panel-muted);
     }
 
-    .graph-header p { margin-bottom: 0; color: #9ca3af; font-size: 12px; }
+    .graph-header p { margin-bottom: 0; color: var(--text-muted); font-size: 13px; }
+
+    .graph-updated {
+      margin-top: 7px;
+      color: var(--text-subtle);
+      font-size: 12px;
+    }
+
+    .graph-updated.stale { color: #fca5a5; }
 
     .graph-legend {
       display: flex;
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: 10px;
-      color: #9ca3af;
-      font-size: 11px;
+      color: var(--text-muted);
+      font-size: 12px;
     }
 
     .legend-item { display: inline-flex; align-items: center; gap: 5px; }
-    .legend-dot { width: 8px; height: 8px; border-radius: 999px; }
-    .green { background: #16a34a; }
-    .red { background: #dc2626; }
-    .yellow { background: #ca8a04; }
-    .gray { background: #374151; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 999px; }
+    .green { background: #4ade80; }
+    .red { background: #f87171; }
+    .yellow { background: #fde047; }
+    .gray { background: #cbd5e1; }
 
     .graph-viewport { min-height: 220px; overflow-x: auto; padding: 12px; }
     .dependency-graph { display: block; min-width: 100%; }
-    .graph-edge { fill: none; stroke: #475569; stroke-width: 2; }
+    .graph-edge { fill: none; stroke: #94a3b8; stroke-width: 2; }
     .graph-node { cursor: pointer; }
-    .graph-node:focus-visible rect { stroke: #60a5fa; stroke-width: 3; }
-    .graph-node rect { fill: #0f172a; stroke: #334155; stroke-width: 1.5; }
-    .graph-node circle { fill: #6b7280; }
+    .graph-node-link:focus-visible { outline: none; }
+    .graph-node-link:focus-visible rect { stroke: var(--focus); stroke-width: 3; }
+    .graph-node rect { fill: var(--background); stroke: #64748b; stroke-width: 1.5; }
+    .graph-node circle { fill: #cbd5e1; }
     .graph-node.missing { cursor: default; }
     .graph-node.missing rect { fill: #1f2937; stroke-dasharray: 6 4; }
-    .graph-node-name { fill: #e5e7eb; font-size: 13px; font-weight: 600; }
-    .graph-node-meta { fill: #9ca3af; font-size: 11px; }
-    .graph-status-running { fill: #16a34a; }
-    .graph-status-exited { fill: #dc2626; }
+    .graph-node-name { fill: var(--text); font-size: 13px; font-weight: 650; }
+    .graph-node-meta { fill: var(--text-muted); font-size: 12px; }
+    .graph-status-running { fill: #4ade80; }
+    .graph-status-exited { fill: #f87171; }
     .graph-status-restarting,
-    .graph-status-mixed { fill: #ca8a04; }
+    .graph-status-mixed { fill: #fde047; }
     .graph-status-missing,
-    .graph-status-unknown { fill: #6b7280; }
+    .graph-status-unknown { fill: #cbd5e1; }
 
     .graph-empty {
       display: grid;
       min-height: 196px;
       place-items: center;
-      color: #9ca3af;
-      font-size: 13px;
+      color: var(--text-muted);
+      font-size: 14px;
     }
+
+    .dependency-list-panel {
+      margin-top: 16px;
+      border: 1px solid var(--panel-muted);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .dependency-list-panel summary {
+      padding: 13px 16px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .dependency-list-panel ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0 36px 16px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .dependency-list-panel a { color: #93c5fd; }
 
     @media (max-width: 640px) {
       .graph-header { display: block; }
@@ -74,7 +109,8 @@
     <div class="graph-header">
       <div>
         <h1 id="graph-title">Service dependencies</h1>
-        <p>Arrows point from each service to the services it depends on. Select a service to open its controls.</p>
+        <p>Arrows point from each service to the services it depends on. Select a service to open its container controls.</p>
+        <div class="graph-updated" id="graph-updated">Waiting for dependencies…</div>
       </div>
       <div class="graph-legend" aria-label="Service status legend">
         <span class="legend-item"><span class="legend-dot green"></span>Running</span>
@@ -83,8 +119,17 @@
         <span class="legend-item"><span class="legend-dot gray"></span>Missing</span>
       </div>
     </div>
-    <div class="graph-viewport" id="graph"></div>
+    <div class="graph-viewport" id="graph" aria-busy="true">
+      <div class="graph-empty" role="status">Loading service dependencies…</div>
+    </div>
   </section>
+
+  <details class="dependency-list-panel">
+    <summary>View dependencies as a list</summary>
+    <ul id="dependency-list">
+      <li>Loading service dependencies…</li>
+    </ul>
+  </details>
 {% endblock %}
 
 {% block scripts %}
@@ -202,9 +247,40 @@
     return [...layers.entries()].sort(([left], [right]) => left - right);
   }
 
-  function openServiceControls(serviceName) {
+  function serviceControlsHref(serviceName) {
     const anchor = window.Overseer.serviceAnchor(serviceName);
-    window.location.assign(`${serviceControlsUrl}#${encodeURIComponent(anchor)}`);
+    return `${serviceControlsUrl}#${encodeURIComponent(anchor)}`;
+  }
+
+  function renderDependencyList(nodes) {
+    const list = document.getElementById("dependency-list");
+    if (nodes.size === 0) {
+      const item = document.createElement("li");
+      item.textContent = "No services found in this Compose project.";
+      list.replaceChildren(item);
+      return;
+    }
+
+    const items = [...nodes.values()]
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .map(node => {
+        const item = document.createElement("li");
+        const name = node.missing
+          ? document.createElement("strong")
+          : document.createElement("a");
+        name.textContent = node.name;
+        if (!node.missing) name.href = serviceControlsHref(node.name);
+
+        const dependencies = [...node.dependencies].sort();
+        const description = node.missing
+          ? " — configured dependency is not running"
+          : dependencies.length > 0
+            ? ` — depends on ${dependencies.join(", ")}`
+            : " — no declared dependencies";
+        item.append(name, document.createTextNode(description));
+        return item;
+      });
+    list.replaceChildren(...items);
   }
 
   function renderDependencyGraph(services) {
@@ -216,10 +292,13 @@
       empty.className = "graph-empty";
       empty.textContent = "No services found in this Compose project";
       graph.appendChild(empty);
+      document.getElementById("graph").setAttribute("aria-busy", "false");
+      renderDependencyList(new Map());
       return;
     }
 
     const nodes = buildGraphNodes(services);
+    renderDependencyList(nodes);
     const layers = buildGraphLayers(nodes);
     const nodeWidth = 190;
     const nodeHeight = 70;
@@ -253,13 +332,13 @@
       viewBox: `0 0 ${graphWidth} ${graphHeight}`,
       width: graphWidth,
       height: graphHeight,
-      role: "img",
-      "aria-label": "Docker Compose service dependency graph"
+      role: "group",
+      "aria-labelledby": "dependency-svg-title dependency-svg-description"
     });
-    const title = createSvgElement("title");
+    const title = createSvgElement("title", { id: "dependency-svg-title" });
     title.textContent = "Docker Compose service dependencies";
     svg.appendChild(title);
-    const description = createSvgElement("desc");
+    const description = createSvgElement("desc", { id: "dependency-svg-description" });
     description.textContent = "Arrows connect each service to its dependencies.";
     svg.appendChild(description);
 
@@ -275,7 +354,7 @@
     });
     marker.appendChild(createSvgElement("path", {
       d: "M 0 0 L 8 4 L 0 8 z",
-      fill: "#475569"
+      fill: "#94a3b8"
     }));
     definitions.appendChild(marker);
     svg.appendChild(definitions);
@@ -344,26 +423,26 @@
         : `${node.status} • ${containerCount} container${containerCount === 1 ? "" : "s"}`;
       group.appendChild(metadata);
 
-      if (!node.missing) {
-        group.setAttribute("role", "link");
-        group.setAttribute("tabindex", "0");
-        group.setAttribute("aria-label", `View controls for ${name}`);
-        group.addEventListener("click", () => openServiceControls(name));
-        group.addEventListener("keydown", event => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openServiceControls(name);
-          }
+      if (node.missing) {
+        svg.appendChild(group);
+      } else {
+        const link = createSvgElement("a", {
+          class: "graph-node-link",
+          href: serviceControlsHref(name),
+          "aria-label": `View container controls for ${name}`
         });
+        link.appendChild(group);
+        svg.appendChild(link);
       }
-      svg.appendChild(group);
     });
 
     graph.appendChild(svg);
+    graph.setAttribute("aria-busy", "false");
   }
 
   let loadInProgress = false;
   let latestServices = [];
+  let hasLoadedServices = false;
 
   async function load() {
     if (loadInProgress) return;
@@ -372,9 +451,26 @@
     try {
       latestServices = await window.Overseer.requestJson("/api/services");
       renderDependencyGraph(latestServices);
-      window.Overseer.clearError();
+      hasLoadedServices = true;
+      const updated = document.getElementById("graph-updated");
+      updated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      updated.classList.remove("stale");
+      window.Overseer.clearMessage();
     } catch (error) {
-      window.Overseer.showError(error.message);
+      const updated = document.getElementById("graph-updated");
+      if (!hasLoadedServices) {
+        updated.textContent = "Dependency data unavailable";
+        const empty = document.querySelector("#graph .graph-empty");
+        if (empty) empty.textContent = "Dependency data is unavailable. Retry the request or check the Docker connection.";
+        const listItem = document.createElement("li");
+        listItem.textContent = "Dependency data is unavailable.";
+        document.getElementById("dependency-list").replaceChildren(listItem);
+      } else if (!updated.classList.contains("stale")) {
+        updated.textContent = `Refresh failed • ${updated.textContent}`;
+      }
+      updated.classList.add("stale");
+      document.getElementById("graph").setAttribute("aria-busy", "false");
+      window.Overseer.showError(error.message, load);
     } finally {
       loadInProgress = false;
     }
@@ -382,14 +478,14 @@
 
   async function poll() {
     await load();
-    window.setTimeout(poll, 5000);
+    window.setTimeout(poll, document.hidden ? 30000 : 5000);
   }
 
   let resizeTimer = null;
   window.addEventListener("resize", () => {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
-      renderDependencyGraph(latestServices);
+      if (hasLoadedServices) renderDependencyGraph(latestServices);
     }, 150);
   });
 
