@@ -143,6 +143,7 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(dashboard["project"]["containers"], 1)
         self.assertEqual(dashboard["project"]["running"], 1)
         self.assertEqual(dashboard["project"]["healthy"], 1)
+        self.assertEqual(dashboard["project"]["health_unreported"], 0)
         self.assertEqual(dashboard["resources"]["cpu_percent"], 40.0)
         self.assertTrue(dashboard["resources"]["metrics_available"])
         self.assertEqual(
@@ -162,6 +163,7 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(result["service"], "web")
         self.assertEqual(result["dependencies"], ["database", "redis"])
         self.assertEqual(result["status"], "running")
+        self.assertEqual(result["health"], "healthy")
         self.assertEqual(result["image"], "example/web:latest")
         self.assertEqual(result["started_at"], "2026-08-10T10:00:00+00:00")
         self.assertIn("uptime", result)
@@ -282,6 +284,8 @@ class RouteTests(unittest.TestCase):
         self.assertIn(b"Project overview", response.data)
         self.assertIn(b"CPU usage", response.data)
         self.assertIn(b"Memory usage", response.data)
+        self.assertIn(b"No containers found", response.data)
+        self.assertIn(b"100% represents one fully utilized CPU core", response.data)
         self.assertIn(b'href="/dependencies"', response.data)
         self.assertIn(b'href="/services"', response.data)
         self.assertEqual(response.headers["Cache-Control"], "no-store")
@@ -292,17 +296,19 @@ class RouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Service dependencies", response.data)
-        self.assertIn(b"Docker Compose service dependency graph", response.data)
+        self.assertIn(b"View dependencies as a list", response.data)
+        self.assertIn(b'role: "group"', response.data)
         self.assertIn(b'aria-current="page"', response.data)
 
     def test_service_controls_renders_dashboard(self):
         response = self.client.get("/services")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Service controls", response.data)
+        self.assertIn(b"Container controls", response.data)
+        self.assertIn(b"Search containers", response.data)
         self.assertIn(b'href="/"', response.data)
         self.assertIn(b'aria-current="page"', response.data)
-        self.assertNotIn(b"Docker Compose service dependency graph", response.data)
+        self.assertNotIn(b"View dependencies as a list", response.data)
 
     def test_health_check_does_not_require_docker(self):
         response = self.client.get("/healthz")
