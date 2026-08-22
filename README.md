@@ -1,6 +1,7 @@
 # Overseer
 
 [![Continuous Integration](https://github.com/pykhaled/overseer/actions/workflows/ci.yml/badge.svg)](https://github.com/pykhaled/overseer/actions/workflows/ci.yml)
+[![Documentation](https://github.com/pykhaled/overseer/actions/workflows/docs.yml/badge.svg)](https://github.com/pykhaled/overseer/actions/workflows/docs.yml)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="overseer/static/images/overseer-sentinel-logo-dark.svg">
@@ -184,8 +185,9 @@ make image
 make smoke
 ```
 
-See the [`docs/`](docs/README.md) directory for architecture, API, development,
-releasing, and deployment details.
+Read the [Overseer documentation](https://pykhaled.github.io/Overseer/) for
+architecture, API, development, releasing, and deployment details. Its Markdown
+source is maintained in the [`docs/`](docs/index.md) directory.
 
 ---
 
