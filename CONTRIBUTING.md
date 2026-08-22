@@ -15,23 +15,17 @@ Create a virtual environment with Python 3.11 or newer and install the
 development dependency group:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade "pip>=25.1"
-python -m pip install --group dev
-python -m pip uninstall --yes setuptools
+make setup PYTHON=python3.14
 ```
+
+Use the command for any locally installed Python 3.11–3.14 interpreter as the
+`PYTHON` value. Run `make help` to see the complete development command list.
 
 Run the complete quality gate before submitting a pull request:
 
 ```bash
-ruff check .
-ruff format --check .
-coverage run -m unittest discover -s tests -v
-coverage report
-python -m pip_audit
-docker compose --env-file /dev/null config --quiet
-docker build -t overseer:contributor .
+make check
+make image IMAGE=overseer:contributor
 ```
 
 Tests must mock the Docker client and must not modify real containers.

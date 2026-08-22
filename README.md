@@ -130,20 +130,18 @@ Instead of showing every container on the machine, Overseer helps you understand
 
 The production image uses Python 3.14, and CI tests Python 3.11 through 3.14.
 Dependencies and development-tool settings are kept in `pyproject.toml`. For
-local development, create a virtual environment, install pip 25.1 or newer,
-install the `dev` dependency group, and ensure a Docker daemon is available:
+local development, create a virtual environment with the provided Make target.
+Set `PYTHON` to any supported Python 3.11–3.14 interpreter available on your
+system:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade "pip>=25.1"
-python -m pip install --group dev
-python -m pip uninstall --yes setuptools
+make setup PYTHON=python3.14
 ```
 
 Setuptools is removed after installation because the application does not need
 it at runtime and the newest available release is affected by a known
-vulnerability.
+vulnerability. Make targets use `.venv` directly, so activating it is optional.
+Run `make help` to list all available commands.
 
 For a production-only environment, install the smaller runtime group instead:
 
@@ -154,39 +152,32 @@ python -m pip install --group runtime
 Run the Flask development server at `http://localhost:8000`:
 
 ```bash
-python -m overseer
+make run
 ```
 
 Run the automated test suite. Tests mock the Docker client and do not modify real containers:
 
 ```bash
-python -m unittest discover -s tests -v
+make test
 ```
 
 Run the complete local quality gate before opening a pull request:
 
 ```bash
-ruff check .
-ruff format --check .
-coverage run -m unittest discover -s tests -v
-coverage report
-python -m pip_audit
-docker compose --env-file /dev/null config --quiet
+make check
 ```
 
 Run the production server locally with Gunicorn:
 
 ```bash
-gunicorn --bind 0.0.0.0:8000 --workers 2 overseer:app
+make serve
 ```
 
-Build and run the container image:
+Build and smoke-test the production container image:
 
 ```bash
-docker build -t overseer .
-docker run --rm -p 8000:8000 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  overseer
+make image
+make smoke
 ```
 
 See the [`docs/`](docs/README.md) directory for architecture, API, development,

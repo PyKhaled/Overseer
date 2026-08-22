@@ -5,9 +5,8 @@ Describe the problem and the change.
 ## Verification
 
 - [ ] Tests added or updated where needed
-- [ ] `ruff check .` passes
-- [ ] `ruff format --check .` passes
-- [ ] Unit tests and coverage pass
+- [ ] `make check` passes
+- [ ] `make image` passes when container behavior changes
 - [ ] Documentation updated where needed
 
 ## Risk
