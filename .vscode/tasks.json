@@ -1,0 +1,228 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Release: Preflight",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/release-preflight.sh",
+      "args": [
+        "${input:releaseTag}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Release: Generate notes",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/generate-release-notes.sh",
+      "args": [
+        "${input:releaseTag}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Release: Submit GitHub release",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/submit-release.sh",
+      "args": [
+        "${input:releaseTag}",
+        "${input:releaseChannel}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Release: Verify",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/verify-release.sh",
+      "args": [
+        "${input:releaseTag}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Development: Setup",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "setup"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Development: Run server",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Quality: Run all checks",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Quality: Format code",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "format"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Testing: Unit tests",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Documentation: Preview",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "docs-serve"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Docker: Build image",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "image"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Smoke test",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "smoke"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maintenance: Clean generated files",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/clean-generated.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "releaseTag",
+      "type": "promptString",
+      "description": "Release tag (for example v3.0.1)"
+    },
+    {
+      "id": "releaseChannel",
+      "type": "pickString",
+      "description": "Release channel",
+      "options": [
+        "stable",
+        "prerelease"
+      ],
+      "default": "stable"
+    }
+  ]
+}
