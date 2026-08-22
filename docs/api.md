@@ -16,6 +16,13 @@ Returns the service dependency graph page.
 
 Returns the service inspection and lifecycle-controls page.
 
+## Health
+
+### `GET /healthz`
+
+Returns `{"status": "ok"}` without contacting Docker. The container health
+check and deployment smoke tests use this endpoint.
+
 ## Project Metrics
 
 ### `GET /api/dashboard`

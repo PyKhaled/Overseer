@@ -1,6 +1,5 @@
 import os
 
-
 if __package__:
     from . import app
 else:

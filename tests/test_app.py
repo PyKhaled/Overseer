@@ -4,7 +4,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-
 app_module = importlib.import_module("overseer.app")
 
 
@@ -26,8 +25,7 @@ def make_container():
             "Labels": {
                 "com.docker.compose.service": "web",
                 "com.docker.compose.depends_on": (
-                    "database:service_healthy:true,"
-                    "redis:service_started:false"
+                    "database:service_healthy:true,redis:service_started:false"
                 ),
             },
         },
@@ -85,9 +83,7 @@ class HelperTests(unittest.TestCase):
 
     def test_get_compose_dependencies_ignores_conditions_and_duplicates(self):
         container = make_container()
-        container.attrs["Config"]["Labels"][
-            app_module.COMPOSE_DEPENDS_ON_LABEL
-        ] = (
+        container.attrs["Config"]["Labels"][app_module.COMPOSE_DEPENDS_ON_LABEL] = (
             "database:service_healthy:true,"
             "database:service_started:false,"
             "redis:service_started:false"
@@ -307,6 +303,12 @@ class RouteTests(unittest.TestCase):
         self.assertIn(b'href="/"', response.data)
         self.assertIn(b'aria-current="page"', response.data)
         self.assertNotIn(b"Docker Compose service dependency graph", response.data)
+
+    def test_health_check_does_not_require_docker(self):
+        response = self.client.get("/healthz")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"status": "ok"})
 
     @patch.object(app_module, "get_client")
     def test_services_returns_inspected_containers(self, get_client):

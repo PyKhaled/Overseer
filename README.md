@@ -128,12 +128,19 @@ Instead of showing every container on the machine, Overseer helps you understand
 
 ## Development
 
-The production image uses Python 3.11. For local development, create a virtual environment, install the dependencies, and ensure a Docker daemon is available:
+The production image uses Python 3.11. Dependencies and development-tool settings are kept in `pyproject.toml`. For local development, create a virtual environment, install pip 25.1 or newer, install the `dev` dependency group, and ensure a Docker daemon is available:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --upgrade "pip>=25.1"
+python -m pip install --group dev
+```
+
+For a production-only environment, install the smaller runtime group instead:
+
+```bash
+python -m pip install --group runtime
 ```
 
 Run the Flask development server at `http://localhost:8000`:
@@ -146,6 +153,17 @@ Run the automated test suite. Tests mock the Docker client and do not modify rea
 
 ```bash
 python -m unittest discover -s tests -v
+```
+
+Run the complete local quality gate before opening a pull request:
+
+```bash
+ruff check .
+ruff format --check .
+coverage run -m unittest discover -s tests -v
+coverage report
+python -m pip_audit
+docker compose --env-file /dev/null config --quiet
 ```
 
 Run the production server locally with Gunicorn:
@@ -173,7 +191,6 @@ Planned features include:
 
 - CPU and memory metrics
 - Live logs
-- Health checks
 - Docker events stream
 - Project metadata
 - Multi-host support

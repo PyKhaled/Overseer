@@ -11,7 +11,17 @@ docker run --rm -p 8000:8000 \
   overseer
 ```
 
-The image runs Gunicorn on port `8000` with two workers. Published images are built by `.github/workflows/docker-image.yml` for `release/**` branches and semantic-version tags such as `v1.0.0`. The publishing job runs the tests first. Tagged releases publish version, major/minor, and `latest` tags to `ghcr.io/<owner>/<repository>`.
+The image runs Gunicorn on port `8000` with two workers and exposes a Docker
+health check through `GET /healthz`. The Python base image and direct
+dependencies are pinned.
+
+`.github/workflows/release.yml` publishes an image only when a GitHub Release
+with a valid `vMAJOR.MINOR.PATCH` semantic-version tag is published. The
+release reruns the complete CI workflow before publishing AMD64 and ARM64
+images to `ghcr.io/<owner>/<repository>`. Stable releases receive
+exact-version, major/minor, major, commit-SHA, and `latest` tags. Pre-releases
+never update `latest`. Published images include SBOM and provenance metadata
+and a GitHub artifact attestation.
 
 ## Compose Project Detection
 

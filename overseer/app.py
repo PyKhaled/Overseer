@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 import docker
 from flask import Flask, jsonify, render_template, request
 
-
 COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
 COMPOSE_SERVICE_LABEL = "com.docker.compose.service"
 COMPOSE_DEPENDS_ON_LABEL = "com.docker.compose.depends_on"
@@ -57,9 +56,9 @@ def calculate_cpu_percent(stats):
     system_delta = cpu_stats.get("system_cpu_usage", 0) - (
         previous_cpu_stats.get("system_cpu_usage", 0)
     )
-    online_cpus = cpu_stats.get("online_cpus") or len(
-        cpu_usage.get("percpu_usage") or []
-    ) or 1
+    online_cpus = (
+        cpu_stats.get("online_cpus") or len(cpu_usage.get("percpu_usage") or []) or 1
+    )
     if cpu_delta <= 0 or system_delta <= 0:
         return 0.0
     return round((cpu_delta / system_delta) * online_cpus * 100, 2)
@@ -134,11 +133,7 @@ def get_uptime(container):
         return None
 
     finished = parse_docker_datetime(state.get("FinishedAt"))
-    end = (
-        finished
-        if finished and finished >= started
-        else datetime.now(timezone.utc)
-    )
+    end = finished if finished and finished >= started else datetime.now(timezone.utc)
     return str(end - started)
 
 
@@ -166,11 +161,7 @@ def get_compose_project(client, overseer_container=None):
 def list_project_containers(client):
     overseer_container = get_overseer_container(client)
     project = get_compose_project(client, overseer_container)
-    filters = (
-        {"label": f"{COMPOSE_PROJECT_LABEL}={project}"}
-        if project
-        else None
-    )
+    filters = {"label": f"{COMPOSE_PROJECT_LABEL}={project}"} if project else None
     list_options = {"all": True, "ignore_removed": True}
     if filters:
         list_options["filters"] = filters
@@ -178,9 +169,7 @@ def list_project_containers(client):
     if overseer_container is None:
         return containers
     return [
-        container
-        for container in containers
-        if container.id != overseer_container.id
+        container for container in containers if container.id != overseer_container.id
     ]
 
 
@@ -246,9 +235,7 @@ def build_project_dashboard(client):
         elif container.status == "restarting":
             restarting += 1
 
-        health = (
-            container.attrs.get("State", {}).get("Health", {}).get("Status")
-        )
+        health = container.attrs.get("State", {}).get("Health", {}).get("Status")
         if health == "healthy":
             healthy += 1
         elif health == "unhealthy":
@@ -268,10 +255,14 @@ def build_project_dashboard(client):
     services = []
     for service in sorted(service_metrics.values(), key=lambda item: item["name"]):
         service["cpu_percent"] = round(service["cpu_percent"], 2)
-        service["memory_percent"] = round(
-            (service["memory_usage"] / service["memory_limit"]) * 100,
-            2,
-        ) if service["memory_limit"] else 0.0
+        service["memory_percent"] = (
+            round(
+                (service["memory_usage"] / service["memory_limit"]) * 100,
+                2,
+            )
+            if service["memory_limit"]
+            else 0.0
+        )
         total_cpu += service["cpu_percent"]
         total_memory += service["memory_usage"]
         total_memory_limit += service["memory_limit"]
@@ -300,7 +291,9 @@ def build_project_dashboard(client):
             "memory_percent": round(
                 (total_memory / total_memory_limit) * 100,
                 2,
-            ) if total_memory_limit else 0.0,
+            )
+            if total_memory_limit
+            else 0.0,
         },
         "services": services,
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -346,6 +339,10 @@ def create_app(config=None):
     @application.route("/services")
     def service_controls():
         return render_template("services.html")
+
+    @application.route("/healthz")
+    def health():
+        return {"status": "ok"}
 
     @application.route("/api/services")
     def services():
