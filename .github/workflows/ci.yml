@@ -54,9 +54,6 @@ jobs:
       - name: Audit Python dependencies
         run: python -m pip_audit --cache-dir /tmp/pip-audit-cache
 
-      - name: Validate Compose configuration
-        run: docker compose --env-file /dev/null config --quiet
-
   test:
     name: Test on Python ${{ matrix.python-version }}
     runs-on: ubuntu-24.04

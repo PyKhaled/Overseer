@@ -10,7 +10,7 @@ SMOKE_CONTAINER ?= overseer-smoke
 SMOKE_PORT ?= 8000
 
 .PHONY: help setup check-env run serve test coverage lint format-check format \
-	audit compose-check check image smoke compose-up compose-down compose-logs clean
+	audit check image smoke clean
 
 help: ## Show available development commands.
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -51,10 +51,7 @@ format: check-env ## Apply Ruff lint fixes and formatting.
 audit: check-env ## Audit Python dependencies for known vulnerabilities.
 	$(VENV_PYTHON) -m pip_audit
 
-compose-check: ## Validate the Docker Compose configuration.
-	docker compose --env-file /dev/null config --quiet
-
-check: lint format-check coverage audit compose-check ## Run the complete local quality gate.
+check: lint format-check coverage audit ## Run the complete local quality gate.
 
 image: ## Build the local production image.
 	docker build -t $(IMAGE) .
@@ -82,15 +79,6 @@ smoke: image ## Build and smoke-test the production image.
 	done; \
 	docker logs "$(SMOKE_CONTAINER)"; \
 	exit 1
-
-compose-up: ## Build and start the local example stack.
-	docker compose up --build --detach
-
-compose-down: ## Stop and remove the local example stack.
-	docker compose down
-
-compose-logs: ## Follow logs from the local example stack.
-	docker compose logs --follow
 
 clean: ## Remove generated caches and coverage reports.
 	rm -rf .coverage coverage.xml htmlcov .mypy_cache .pytest_cache .ruff_cache
