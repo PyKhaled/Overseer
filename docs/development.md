@@ -8,15 +8,14 @@ environment with a supported Python version, ensure pip 25.1 or newer is
 installed, and install the development dependency group:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade "pip>=25.1"
-python -m pip install --group dev
-python -m pip uninstall --yes setuptools
+make setup PYTHON=python3.14
 ```
 
 Setuptools is removed after installation because Overseer does not need it at
 runtime and the newest available release is affected by a known vulnerability.
+Set `PYTHON` to the command for any supported Python 3.11–3.14 interpreter.
+The Make targets call `.venv/bin/python` directly, so activating the virtual
+environment is optional.
 
 Use `python -m pip install --group runtime` when only the production dependencies are needed.
 
@@ -25,7 +24,7 @@ The app needs access to a Docker daemon. `docker.from_env()` honors standard Doc
 ## Run Locally
 
 ```bash
-python -m overseer
+make run
 ```
 
 Open `http://localhost:8000`. The development server binds to `127.0.0.1` with debug mode disabled by default. Set `OVERSEER_DEBUG=1` or `OVERSEER_HOST` only when you explicitly need different local-development behavior.
@@ -33,7 +32,7 @@ Open `http://localhost:8000`. The development server binds to `127.0.0.1` with d
 To exercise the production server locally:
 
 ```bash
-gunicorn --bind 0.0.0.0:8000 --workers 2 overseer:app
+make serve
 ```
 
 ## Test
@@ -41,18 +40,13 @@ gunicorn --bind 0.0.0.0:8000 --workers 2 overseer:app
 Run the complete suite with:
 
 ```bash
-python -m unittest discover -s tests -v
+make test
 ```
 
 Run the same quality and security checks used by CI:
 
 ```bash
-ruff check .
-ruff format --check .
-coverage run -m unittest discover -s tests -v
-coverage report
-python -m pip_audit
-docker compose --env-file /dev/null config --quiet
+make check
 ```
 
 Tests use `unittest.mock` to replace the Docker client. New tests must not operate on real containers. Name test modules `test_*.py` and cover both the response and the expected Docker SDK call.
@@ -60,8 +54,29 @@ Tests use `unittest.mock` to replace the Docker client. New tests must not opera
 Before opening a pull request, run the checks and verify the image builds:
 
 ```bash
-docker build -t overseer .
+make image
+make smoke
 ```
+
+## Command Reference
+
+Run `make help` for the current command list. The main targets are:
+
+| Target | Purpose |
+| --- | --- |
+| `setup` | Create `.venv` and install the development dependency group. |
+| `run` / `serve` | Start the Flask development server or Gunicorn. |
+| `test` / `coverage` | Run unit tests, optionally enforcing coverage. |
+| `lint` / `format-check` | Run the non-mutating source checks. |
+| `format` | Apply Ruff's safe lint fixes and formatter. |
+| `audit` / `compose-check` | Check dependencies and Compose configuration. |
+| `check` | Run the complete local quality gate used by CI. |
+| `image` / `smoke` | Build and verify the production container. |
+| `compose-up` / `compose-down` / `compose-logs` | Operate the example stack. |
+| `clean` | Remove generated caches and coverage output; it preserves `.venv`. |
+
+`IMAGE`, `SMOKE_CONTAINER`, and `SMOKE_PORT` can override the container defaults.
+For example, use `make smoke SMOKE_PORT=8088` when port 8000 is occupied.
 
 GitHub Actions runs quality checks, dependency auditing, tests on Python
 3.11–3.14, a container vulnerability scan, and a live container smoke test on
