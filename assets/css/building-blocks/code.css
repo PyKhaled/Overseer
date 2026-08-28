@@ -1,0 +1,44 @@
+.b-code-block {
+  position: relative;
+  margin-block: var(--space-5);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-code);
+  overflow: hidden;
+}
+
+.b-code-block pre {
+  padding: var(--space-5);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  overflow-x: auto;
+}
+
+.b-code-copy {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.b-code-copy:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.b-inline-code {
+  padding: 0.14rem 0.35rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.3rem;
+  background: var(--color-code);
+  color: var(--color-accent);
+  font-size: 0.86em;
+}

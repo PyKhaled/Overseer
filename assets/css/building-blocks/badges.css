@@ -1,0 +1,28 @@
+.b-eyebrow,
+.b-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-accent);
+  font-size: 0.76rem;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.b-eyebrow::before {
+  width: 1.35rem;
+  height: 1px;
+  background: currentcolor;
+  content: "";
+}
+
+.b-badge {
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}

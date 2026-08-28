@@ -1,0 +1,28 @@
+h1,
+h2,
+h3 {
+  max-width: 24ch;
+  font-weight: 720;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+h1 {
+  font-size: clamp(2.8rem, 7vw, 5.8rem);
+}
+
+h2 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+h3 {
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+}
+
+p {
+  color: var(--color-text-muted);
+}
+
+strong {
+  color: var(--color-text);
+}

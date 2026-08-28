@@ -1,0 +1,18 @@
+.f-docs-layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: clamp(2rem, 7vw, 6rem);
+  padding-block: clamp(2.5rem, 6vw, 5rem);
+}
+
+.f-reading-layout {
+  width: min(calc(100% - 2.5rem), var(--size-reading));
+  margin-inline: auto;
+  padding-block: clamp(3rem, 7vw, 6rem);
+}
+
+@media (max-width: 52rem) {
+  .f-docs-layout {
+    grid-template-columns: 1fr;
+  }
+}

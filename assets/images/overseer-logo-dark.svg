@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 256" role="img" aria-labelledby="title description">
+  <title id="title">Overseer</title>
+  <desc id="description">Overseer wordmark with the Sentinel Lens icon, for dark backgrounds.</desc>
+  <g transform="translate(8)">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M40 112Q128 38 216 112" stroke="#2563eb" stroke-width="18"/>
+      <path d="M40 144Q128 218 216 144" stroke="#22d3ee" stroke-width="18"/>
+      <circle cx="128" cy="128" r="25" stroke="#22d3ee" stroke-width="16"/>
+      <path d="M128 75V43" stroke="#2563eb" stroke-width="12"/>
+      <circle cx="128" cy="25" r="13" stroke="#2563eb" stroke-width="10"/>
+      <path d="M53 154L32 176" stroke="#22d3ee" stroke-width="12"/>
+      <circle cx="21" cy="188" r="13" stroke="#22d3ee" stroke-width="10"/>
+      <path d="M203 154L224 176" stroke="#22d3ee" stroke-width="12"/>
+      <circle cx="235" cy="188" r="13" stroke="#22d3ee" stroke-width="10"/>
+    </g>
+    <text x="286" y="164" fill="#f8fafc" font-family="Inter,ui-sans-serif,system-ui,sans-serif" font-size="112" font-weight="700" letter-spacing="-4">Overseer</text>
+  </g>
+</svg>

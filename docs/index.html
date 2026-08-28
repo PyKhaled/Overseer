@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Overseer documentation: setup, architecture, development, deployment, HTTP API, and releasing.">
+  <meta name="theme-color" content="#07111f"><title>Documentation — Overseer</title>
+  <link rel="icon" href="../assets/images/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/css/styles.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('overseer-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')}catch(_){}</script><script type="module" src="../assets/js/main.js"></script>
+</head>
+<body>
+  <a class="t-skip-link" href="#main-content">Skip to content</a>
+  <header class="m-site-header" data-site-header><div class="m-site-header__inner f-container">
+    <a class="m-brand" href="../" aria-label="Overseer home"><img class="m-brand__logo--dark" src="../assets/images/overseer-logo-dark.svg" alt="Overseer"><img class="m-brand__logo--light" src="../assets/images/overseer-logo-light.svg" alt="Overseer"></a>
+    <nav class="m-primary-nav" id="primary-navigation" aria-label="Primary navigation" data-primary-nav><ul class="m-primary-nav__list">
+      <li><a class="m-primary-nav__link" href="../">Home</a></li><li><a class="m-primary-nav__link" href="./" aria-current="page">Docs</a></li><li><a class="m-primary-nav__link" href="https://github.com/PyKhaled/Overseer/issues">Issues</a></li><li><a class="m-primary-nav__link" href="https://github.com/PyKhaled/Overseer/discussions">Community</a></li><li><a class="m-primary-nav__link" href="https://github.com/PyKhaled/Overseer/releases">Releases</a></li><li><a class="m-primary-nav__link" href="../news/">News</a></li><li><a class="m-primary-nav__link" href="../sponsors/">Sponsors</a></li>
+    </ul></nav>
+    <div class="m-site-header__actions"><button class="b-icon-button" type="button" aria-label="Switch theme" data-theme-toggle><span aria-hidden="true" data-theme-icon>☀</span></button><a class="b-button" href="../download/">Download</a><button class="b-icon-button m-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" aria-label="Open navigation" data-menu-toggle><span aria-hidden="true"><span class="m-menu-toggle__line"></span><span class="m-menu-toggle__line"></span></span></button></div>
+  </div></header>
+  <main id="main-content">
+    <header class="m-page-header"><div class="f-container m-page-header__inner"><span class="b-eyebrow">Documentation</span><h1>Build a clearer view of your Compose project.</h1><p class="m-page-header__lede">Start with a small Compose service, then explore Overseer’s architecture, API, security boundaries, and contributor workflows.</p></div></header>
+    <div class="f-container f-docs-layout">
+      <aside class="m-docs-nav" aria-label="Documentation sections"><p class="m-docs-nav__title">On this site</p><ul class="m-docs-nav__list"><li><a class="m-docs-nav__link" href="./" aria-current="page">Overview</a></li><li><a class="m-docs-nav__link" href="architecture/">Architecture</a></li><li><a class="m-docs-nav__link" href="development/">Development</a></li><li><a class="m-docs-nav__link" href="deployment/">Deployment &amp; security</a></li><li><a class="m-docs-nav__link" href="api/">HTTP API</a></li><li><a class="m-docs-nav__link" href="releasing/">Releasing</a></li></ul></aside>
+      <article class="m-article">
+        <h2>Quick start</h2><p>Add Overseer to an existing Compose file, mount the Docker socket, then expose the dashboard on port <code class="b-inline-code">8765</code>.</p>
+        <div class="b-code-block" data-code-block><pre><code>services:
+  overseer:
+    image: ghcr.io/pykhaled/overseer:latest
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock</code></pre></div>
+        <p>Start the project and open <code class="b-inline-code">http://localhost:8765</code>.</p><div class="b-code-block" data-code-block><pre><code>docker compose up -d</code></pre></div>
+        <div class="m-callout"><strong>Protect access to Overseer</strong><p>Overseer has no built-in authentication, and Docker socket access is effectively administrative access to the host. Run it only on a trusted network and put authentication and TLS at a trusted reverse proxy before allowing remote access.</p></div>
+        <h2>Explore the documentation</h2>
+        <div class="f-card-grid">
+          <article class="m-feature-card"><span class="m-feature-card__index">System</span><div class="m-feature-card__copy"><h3>Architecture</h3><p>Follow the request flow from browser to Flask and the Docker SDK.</p><a class="b-arrow-link" href="architecture/">Read architecture <span>→</span></a></div></article>
+          <article class="m-feature-card"><span class="m-feature-card__index">Operate</span><div class="m-feature-card__copy"><h3>Deployment</h3><p>Understand Compose detection, container images, and socket risks.</p><a class="b-arrow-link" href="deployment/">Deploy safely <span>→</span></a></div></article>
+          <article class="m-feature-card"><span class="m-feature-card__index">Integrate</span><div class="m-feature-card__copy"><h3>HTTP API</h3><p>Review project data, service discovery, and lifecycle endpoints.</p><a class="b-arrow-link" href="api/">Browse endpoints <span>→</span></a></div></article>
+        </div>
+      </article>
+    </div>
+  </main>
+  <footer class="f-site-footer"><div class="f-site-footer__inner f-container"><p class="f-site-footer__copy">Overseer is open-source software released under the MIT License.</p><ul class="f-site-footer__links"><li><a href="https://github.com/PyKhaled/Overseer">GitHub</a></li><li><a href="./">Documentation</a></li><li><a href="https://github.com/PyKhaled/Overseer/blob/main/SECURITY.md">Security</a></li></ul></div></footer>
+</body></html>

@@ -1,0 +1,27 @@
+.f-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(22rem, 0.95fr);
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.f-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 58rem) {
+  .f-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .f-card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 40rem) {
+  .f-card-grid {
+    grid-template-columns: 1fr;
+  }
+}

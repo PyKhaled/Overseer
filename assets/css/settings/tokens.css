@@ -1,0 +1,67 @@
+:root {
+  color-scheme: dark;
+  --color-canvas: #07111f;
+  --color-canvas-soft: #0b1728;
+  --color-surface: #101e30;
+  --color-surface-raised: #14263a;
+  --color-surface-bright: #1a3047;
+  --color-text: #f4f8fc;
+  --color-text-muted: #a9b8c9;
+  --color-text-faint: #74859a;
+  --color-line: rgb(148 176 204 / 18%);
+  --color-line-strong: rgb(148 176 204 / 32%);
+  --color-primary: #4f7cff;
+  --color-primary-strong: #315ee8;
+  --color-accent: #22d3ee;
+  --color-accent-soft: rgb(34 211 238 / 12%);
+  --color-success: #41d3a2;
+  --color-warning: #f7c75e;
+  --color-danger: #ff718b;
+  --color-code: #07101c;
+  --shadow-soft: 0 24px 80px rgb(0 0 0 / 28%);
+  --shadow-card: 0 12px 38px rgb(0 0 0 / 18%);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --size-content: 72rem;
+  --size-reading: 48rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --radius-sm: 0.45rem;
+  --radius-md: 0.8rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --transition-fast: 160ms ease;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-canvas: #f6f9fc;
+  --color-canvas-soft: #edf3f8;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-bright: #e8f0f7;
+  --color-text: #102136;
+  --color-text-muted: #52647a;
+  --color-text-faint: #728197;
+  --color-line: rgb(49 76 105 / 15%);
+  --color-line-strong: rgb(49 76 105 / 28%);
+  --color-primary: #315ee8;
+  --color-primary-strong: #2149c9;
+  --color-accent: #078aa2;
+  --color-accent-soft: rgb(7 138 162 / 10%);
+  --color-success: #13885f;
+  --color-warning: #9b6410;
+  --color-danger: #c53b5a;
+  --color-code: #edf3f8;
+  --shadow-soft: 0 24px 70px rgb(44 68 92 / 14%);
+  --shadow-card: 0 12px 32px rgb(44 68 92 / 9%);
+}

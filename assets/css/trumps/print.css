@@ -1,0 +1,13 @@
+@media print {
+  .m-site-header,
+  .f-site-footer,
+  .b-button,
+  .t-skip-link {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

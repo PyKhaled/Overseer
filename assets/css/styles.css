@@ -1,0 +1,26 @@
+@layer settings, generic, elements, building-blocks, modules, frameworks, utilities, trumps;
+
+@import url("settings/tokens.css") layer(settings);
+@import url("generic/reset.css") layer(generic);
+@import url("generic/box-sizing.css") layer(generic);
+@import url("elements/document.css") layer(elements);
+@import url("elements/typography.css") layer(elements);
+@import url("building-blocks/buttons.css") layer(building-blocks);
+@import url("building-blocks/badges.css") layer(building-blocks);
+@import url("building-blocks/links.css") layer(building-blocks);
+@import url("building-blocks/code.css") layer(building-blocks);
+@import url("modules/navigation.css") layer(modules);
+@import url("modules/hero.css") layer(modules);
+@import url("modules/cards.css") layer(modules);
+@import url("modules/page-header.css") layer(modules);
+@import url("modules/article.css") layer(modules);
+@import url("modules/docs-nav.css") layer(modules);
+@import url("modules/release-panel.css") layer(modules);
+@import url("modules/sponsor-list.css") layer(modules);
+@import url("frameworks/site-shell.css") layer(frameworks);
+@import url("frameworks/content-grid.css") layer(frameworks);
+@import url("frameworks/docs-layout.css") layer(frameworks);
+@import url("utilities/spacing.css") layer(utilities);
+@import url("utilities/visibility.css") layer(utilities);
+@import url("trumps/accessibility.css") layer(trumps);
+@import url("trumps/print.css") layer(trumps);

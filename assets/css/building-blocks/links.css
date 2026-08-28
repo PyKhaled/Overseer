@@ -1,0 +1,27 @@
+.b-text-link {
+  color: var(--color-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.b-text-link:hover {
+  text-decoration: underline;
+}
+
+.b-arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.b-arrow-link span {
+  color: var(--color-accent);
+  transition: transform var(--transition-fast);
+}
+
+.b-arrow-link:hover span {
+  transform: translateX(0.2rem);
+}

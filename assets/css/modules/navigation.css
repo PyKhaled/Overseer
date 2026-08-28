@@ -1,0 +1,132 @@
+.m-site-header {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  border-bottom: 1px solid transparent;
+  background: color-mix(in srgb, var(--color-canvas) 84%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.m-site-header.is-scrolled {
+  border-bottom-color: var(--color-line);
+}
+
+.m-site-header__inner {
+  display: flex;
+  min-height: 4.75rem;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.m-brand {
+  display: inline-flex;
+  width: 10.5rem;
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+
+.m-brand__logo--dark {
+  display: block;
+}
+
+.m-brand__logo--light {
+  display: none;
+}
+
+[data-theme="light"] .m-brand__logo--dark {
+  display: none;
+}
+
+[data-theme="light"] .m-brand__logo--light {
+  display: block;
+}
+
+.m-primary-nav {
+  margin-left: auto;
+}
+
+.m-primary-nav__list {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  list-style: none;
+}
+
+.m-primary-nav__link {
+  display: inline-flex;
+  padding: 0.58rem 0.68rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.m-primary-nav__link:hover,
+.m-primary-nav__link[aria-current="page"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.m-site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.m-menu-toggle {
+  display: none;
+}
+
+.m-menu-toggle__line {
+  display: block;
+  width: 1.15rem;
+  height: 2px;
+  background: currentcolor;
+}
+
+.m-menu-toggle__line + .m-menu-toggle__line {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 64rem) {
+  .m-menu-toggle {
+    display: block;
+  }
+
+  .m-primary-nav {
+    position: absolute;
+    top: calc(100% + 1px);
+    right: var(--space-5);
+    left: var(--space-5);
+    display: none;
+    padding: var(--space-3);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .m-primary-nav.is-open {
+    display: block;
+  }
+
+  .m-primary-nav__list {
+    display: grid;
+  }
+
+  .m-primary-nav__link {
+    padding: 0.8rem;
+  }
+}
+
+@media (max-width: 34rem) {
+  .m-brand {
+    width: 8.5rem;
+  }
+
+  .m-site-header__actions .b-button {
+    display: none;
+  }
+}

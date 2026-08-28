@@ -1,0 +1,21 @@
+.m-empty-state {
+  display: grid;
+  max-width: 44rem;
+  justify-items: start;
+  gap: var(--space-5);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.m-empty-state__mark {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 1.45rem;
+}

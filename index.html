@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Overseer is a lightweight, project-centric observability and control dashboard for Docker Compose applications.">
+    <meta name="theme-color" content="#07111f">
+    <meta property="og:title" content="Overseer — Docker Compose, clearly observed">
+    <meta property="og:description" content="Discover, monitor, and manage the services in one Docker Compose project.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pykhaled.github.io/Overseer/">
+    <title>Overseer — Project-centric Docker Compose observability</title>
+    <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script>
+      try { document.documentElement.dataset.theme = localStorage.getItem('overseer-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch (_) {}
+    </script>
+    <script type="module" src="assets/js/main.js"></script>
+  </head>
+  <body>
+    <a class="t-skip-link" href="#main-content">Skip to content</a>
+
+    <header class="m-site-header" data-site-header>
+      <div class="m-site-header__inner f-container">
+        <a class="m-brand" href="./" aria-label="Overseer home">
+          <img class="m-brand__logo--dark" src="assets/images/overseer-logo-dark.svg" alt="Overseer">
+          <img class="m-brand__logo--light" src="assets/images/overseer-logo-light.svg" alt="Overseer">
+        </a>
+
+        <nav class="m-primary-nav" id="primary-navigation" aria-label="Primary navigation" data-primary-nav>
+          <ul class="m-primary-nav__list">
+            <li><a class="m-primary-nav__link" href="./" aria-current="page">Home</a></li>
+            <li><a class="m-primary-nav__link" href="docs/">Docs</a></li>
+            <li><a class="m-primary-nav__link" href="https://github.com/PyKhaled/Overseer/issues">Issues</a></li>
+            <li><a class="m-primary-nav__link" href="https://github.com/PyKhaled/Overseer/discussions">Community</a></li>
+            <li><a class="m-primary-nav__link" href="https://github.com/PyKhaled/Overseer/releases">Releases</a></li>
+            <li><a class="m-primary-nav__link" href="news/">News</a></li>
+            <li><a class="m-primary-nav__link" href="sponsors/">Sponsors</a></li>
+          </ul>
+        </nav>
+
+        <div class="m-site-header__actions">
+          <button class="b-icon-button" type="button" aria-label="Switch theme" data-theme-toggle>
+            <span aria-hidden="true" data-theme-icon>☀</span>
+          </button>
+          <a class="b-button" href="download/">Download</a>
+          <button class="b-icon-button m-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" aria-label="Open navigation" data-menu-toggle>
+            <span aria-hidden="true"><span class="m-menu-toggle__line"></span><span class="m-menu-toggle__line"></span></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="m-hero">
+        <div class="f-container f-hero-grid">
+          <div class="m-hero__copy">
+            <span class="b-eyebrow">Project-centric observability</span>
+            <h1 class="m-hero__title">Your Compose stack, <span class="m-hero__title-accent">under one lens.</span></h1>
+            <p class="m-hero__lede">Overseer discovers the services in one Docker Compose project, shows their health and resource use, maps dependencies, and puts lifecycle controls close at hand.</p>
+            <div class="m-hero__actions">
+              <a class="b-button" href="docs/">Read the docs <span aria-hidden="true">→</span></a>
+              <a class="b-button b-button--secondary" href="download/">Get Overseer</a>
+            </div>
+            <code class="m-command"><span class="m-command__prompt" aria-hidden="true">$</span> docker compose up -d</code>
+          </div>
+
+          <div class="m-console" aria-label="Example Overseer project dashboard">
+            <div class="m-console__toolbar">
+              <span class="m-console__dots" aria-hidden="true"><span class="m-console__dot"></span><span class="m-console__dot"></span><span class="m-console__dot"></span></span>
+              <span>project / production</span>
+            </div>
+            <div class="m-console__summary">
+              <div class="m-console__metric"><strong class="m-console__value">06</strong><span class="m-console__label">Services</span></div>
+              <div class="m-console__metric"><strong class="m-console__value">06</strong><span class="m-console__label">Running</span></div>
+              <div class="m-console__metric"><strong class="m-console__value">2.8%</strong><span class="m-console__label">CPU</span></div>
+            </div>
+            <div class="m-console__services">
+              <div class="m-service"><span class="m-service__status"></span><span class="m-service__name">api-gateway</span><span class="m-service__usage">0.4% · 92 MB</span></div>
+              <div class="m-service"><span class="m-service__status"></span><span class="m-service__name">service-a</span><span class="m-service__usage">0.8% · 128 MB</span></div>
+              <div class="m-service"><span class="m-service__status"></span><span class="m-service__name">postgres</span><span class="m-service__usage">0.6% · 184 MB</span></div>
+              <div class="m-service"><span class="m-service__status"></span><span class="m-service__name">redis</span><span class="m-service__usage">0.2% · 36 MB</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="f-section f-section--bordered">
+        <div class="f-container">
+          <div class="m-section-heading">
+            <span class="b-eyebrow">See the whole project</span>
+            <h2>Operational context without host-level noise.</h2>
+            <p>Overseer stays focused on the application you are running, so the information that matters remains easy to find.</p>
+          </div>
+          <div class="f-card-grid">
+            <article class="m-feature-card"><span class="m-feature-card__index">01 / Discover</span><div class="m-feature-card__copy"><h3>Automatic service discovery</h3><p>Find the containers that belong to the same Compose project without maintaining a separate inventory.</p></div></article>
+            <article class="m-feature-card"><span class="m-feature-card__index">02 / Understand</span><div class="m-feature-card__copy"><h3>Dependencies in context</h3><p>Trace declared service relationships through a clear, interactive project graph.</p></div></article>
+            <article class="m-feature-card"><span class="m-feature-card__index">03 / Operate</span><div class="m-feature-card__copy"><h3>Controls where you need them</h3><p>Start, stop, and restart project services from a single operational view.</p></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="f-section">
+        <div class="f-container">
+          <div class="m-release-strip">
+            <span class="m-release-strip__version">v3.0.0</span>
+            <div class="m-release-strip__copy"><h3>Latest stable release</h3><p>Refined operational UX, Sentinel Lens branding, documentation, and a streamlined development workflow.</p></div>
+            <a class="b-button b-button--secondary" href="https://github.com/PyKhaled/Overseer/releases/tag/v3.0.0">View release <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="f-site-footer">
+      <div class="f-site-footer__inner f-container">
+        <p class="f-site-footer__copy">Overseer is open-source software released under the MIT License.</p>
+        <ul class="f-site-footer__links">
+          <li><a href="https://github.com/PyKhaled/Overseer">GitHub</a></li>
+          <li><a href="docs/">Documentation</a></li>
+          <li><a href="https://github.com/PyKhaled/Overseer/blob/main/SECURITY.md">Security</a></li>
+        </ul>
+      </div>
+    </footer>
+  </body>
+</html>
